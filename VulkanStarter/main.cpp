@@ -49,18 +49,18 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 }
 
 struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
+	std::optional<uint32_t> graphicsFamily; //optional value to store the graphics queue family
+	std::optional<uint32_t> presentFamily; //optional value to store the presentation queue family
 
-	bool isComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
+	bool isComplete() { //function to check for the existence of both graphics and presentation queue families 
+		return graphicsFamily.has_value() && presentFamily.has_value(); //returns true if both queue families exist
 	}
 };
 
 struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
+	VkSurfaceCapabilitiesKHR capabilities; //struct for storing information about the basic surface capabilities
+	std::vector<VkSurfaceFormatKHR> formats; //list of structs for storing the surface formats
+	std::vector<VkPresentModeKHR> presentModes; //list of structs for storing available presentation modes
 };
 
 class HelloTriangleApplication {
@@ -83,7 +83,7 @@ private:
 	VkDevice device; //creates the device object
 
 	VkQueue graphicsQueue; //creates the graphics queue
-	VkQueue presentQueue; //creates the present queue
+	VkQueue presentQueue; //creates the presentation queue
 
 	VkSwapchainKHR swapChain; //creates the swap chain object
 	std::vector<VkImage> swapChainImages; //creates the vector of swap chain images
@@ -264,9 +264,9 @@ private:
 	}
 
 	void createLogicalDevice() {
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+		QueueFamilyIndices indices = findQueueFamilies(physicalDevice); //finds the queue families for the GPU
 
-		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos; //declares a vector of queue information structs
 		std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 		float queuePriority = 1.0f; //sets the priority of the queue
@@ -304,35 +304,35 @@ private:
 			throw std::runtime_error("failed to create logical device!"); //throws runtime error
 		}
 
-		vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-		vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+		vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue); //retrieves the queue handle for the graphics family 
+		vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue); //retrieves the queue handle for the presentation family
 	}
 
 	void createSwapChain() {
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice); //queries the swap chain details and stores them in a struct
 
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-		VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats); //calls the function to select the surface format from the available formats
+		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes); //calls the function to select the presentation mode from the available modes
+		VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities); //calls the function to select the best swap extent
 
-		uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-			imageCount = swapChainSupport.capabilities.maxImageCount;
+		uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1; //sets the image count to the minimum plus 1
+		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) { //if the count is greater than 0 and is less than the maximum image count
+			imageCount = swapChainSupport.capabilities.maxImageCount; //sets the image count to the maximum image count
 		}
 
 		VkSwapchainCreateInfoKHR createInfo = {}; //struct for swap chain information
-		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = surface;
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR; //sets the type of the struct
+		createInfo.surface = surface; //sets the surface information of the struct
 
-		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = surfaceFormat.format;
-		createInfo.imageColorSpace = surfaceFormat.colorSpace;
-		createInfo.imageExtent = extent;
-		createInfo.imageArrayLayers = 1;
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		createInfo.minImageCount = imageCount; //sets the image count of the struct
+		createInfo.imageFormat = surfaceFormat.format; //sets the surface format of the struct
+		createInfo.imageColorSpace = surfaceFormat.colorSpace; //sets the color space of the struct
+		createInfo.imageExtent = extent; //sets the extent of the struct
+		createInfo.imageArrayLayers = 1; //sets the number of image array layers to 1
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; //specifies the image can be used to create a VkImageView suitable for use as a color or resolve attachment in a VkFrameBuffer
 
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-		uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+		QueueFamilyIndices indices = findQueueFamilies(physicalDevice); //finds the queue families for the GPU
+		uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() }; //creates an array storing both the graphics and presentation queue family indices
 
 		if (indices.graphicsFamily != indices.presentFamily) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -363,10 +363,10 @@ private:
 	}
 
 	void createImageViews() {
-		swapChainImageViews.resize(swapChainImages.size());
+		swapChainImageViews.resize(swapChainImages.size()); //sets number of swap chain images
 
-		for (size_t i = 0; i < swapChainImages.size(); i++) {
-			VkImageViewCreateInfo createInfo = {};
+		for (size_t i = 0; i < swapChainImages.size(); i++) { //iterates through swap chain images
+			VkImageViewCreateInfo createInfo = {}; //struct for image information
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			createInfo.image = swapChainImages[i];
 			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -388,7 +388,7 @@ private:
 	}
 
 	void createRenderPass() {
-		VkAttachmentDescription colorAttachment = {};
+		VkAttachmentDescription colorAttachment = {}; //struct for color attachment information
 		colorAttachment.format = swapChainImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -398,16 +398,16 @@ private:
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		VkAttachmentReference colorAttachmentRef = {};
+		VkAttachmentReference colorAttachmentRef = {}; //struct for color attachment reference information
 		colorAttachmentRef.attachment = 0;
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		VkSubpassDescription subpass = {};
+		VkSubpassDescription subpass = {}; //struct for subpass information
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
 
-		VkSubpassDependency dependency = {};
+		VkSubpassDependency dependency = {}; //struct for dependency information
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
 		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -415,7 +415,7 @@ private:
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		VkRenderPassCreateInfo renderPassInfo = {};
+		VkRenderPassCreateInfo renderPassInfo = {}; //struct for render pass information
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = 1;
 		renderPassInfo.pAttachments = &colorAttachment;
@@ -436,26 +436,26 @@ private:
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode); //sets the vertex shader module by using the shader path
 		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode); //sets the fragment shader module using the shader path
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {}; //struct for vertex shader stage information
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vertShaderStageInfo.module = vertShaderModule;
 		vertShaderStageInfo.pName = "main";
 
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+		VkPipelineShaderStageCreateInfo fragShaderStageInfo = {}; //struct for fragment shader stage information
 		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		fragShaderStageInfo.module = fragShaderModule;
 		fragShaderStageInfo.pName = "main";
 
-		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo }; //array for the vertex/fragment shader stage information
 
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {}; //struct for vertex input information
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 0;
 		vertexInputInfo.vertexAttributeDescriptionCount = 0;
 
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {}; //struct for input assembly information
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
@@ -468,18 +468,18 @@ private:
 		viewport.minDepth = 0.0f; //sets the minimum depth of the viewport
 		viewport.maxDepth = 1.0f; //sets the maximum depth of the viewport
 
-		VkRect2D scissor = {};
+		VkRect2D scissor = {}; //struct for scissor information
 		scissor.offset = { 0, 0 };
 		scissor.extent = swapChainExtent;
 
-		VkPipelineViewportStateCreateInfo viewportState = {};
+		VkPipelineViewportStateCreateInfo viewportState = {}; //struct for viewport state information
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
 		viewportState.pViewports = &viewport;
 		viewportState.scissorCount = 1;
 		viewportState.pScissors = &scissor;
 
-		VkPipelineRasterizationStateCreateInfo rasterizer = {};
+		VkPipelineRasterizationStateCreateInfo rasterizer = {}; //struct for rasterizer information
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
@@ -489,16 +489,16 @@ private:
 		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 
-		VkPipelineMultisampleStateCreateInfo multisampling = {};
+		VkPipelineMultisampleStateCreateInfo multisampling = {}; //struct for multisampling information
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.sampleShadingEnable = VK_FALSE;
 		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+		VkPipelineColorBlendAttachmentState colorBlendAttachment = {}; //struct for color blend attachment information
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		colorBlendAttachment.blendEnable = VK_FALSE;
 
-		VkPipelineColorBlendStateCreateInfo colorBlending = {};
+		VkPipelineColorBlendStateCreateInfo colorBlending = {}; //struct for color blending information
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY;
@@ -509,16 +509,16 @@ private:
 		colorBlending.blendConstants[2] = 0.0f;
 		colorBlending.blendConstants[3] = 0.0f;
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {}; //struct for pipeline layout information
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 0;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) { //if creation of pipeline layout unsuccessful
 			throw std::runtime_error("failed to create pipeline layout!"); //throws runtime error
 		}
 
-		VkGraphicsPipelineCreateInfo pipelineInfo = {};
+		VkGraphicsPipelineCreateInfo pipelineInfo = {}; //struct for pipeline information
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.stageCount = 2;
 		pipelineInfo.pStages = shaderStages;
@@ -542,14 +542,14 @@ private:
 	}
 
 	void createFramebuffers() {
-		swapChainFramebuffers.resize(swapChainImageViews.size());
+		swapChainFramebuffers.resize(swapChainImageViews.size()); //gets number of image views and sets number of frame buffers
 
-		for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+		for (size_t i = 0; i < swapChainImageViews.size(); i++) { //iterates through image views
 			VkImageView attachments[] = {
 				swapChainImageViews[i]
 			};
 
-			VkFramebufferCreateInfo framebufferInfo = {};
+			VkFramebufferCreateInfo framebufferInfo = {}; //struct for frame buffer information
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = renderPass;
 			framebufferInfo.attachmentCount = 1;
@@ -567,7 +567,7 @@ private:
 	void createCommandPool() {
 		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
-		VkCommandPoolCreateInfo poolInfo = {};
+		VkCommandPoolCreateInfo poolInfo = {}; //struct for pool information
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
@@ -577,20 +577,20 @@ private:
 	}
 
 	void createCommandBuffers() {
-		commandBuffers.resize(swapChainFramebuffers.size());
+		commandBuffers.resize(swapChainFramebuffers.size()); //gets number of frame buffers
 
-		VkCommandBufferAllocateInfo allocInfo = {};
+		VkCommandBufferAllocateInfo allocInfo = {}; //struct for command buffer allocation information
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.commandPool = commandPool;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-		if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+		if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) { //if command buffers were not successfully allocated
 			throw std::runtime_error("failed to allocate command buffers!"); //throws runtime error
 		}
 
-		for (size_t i = 0; i < commandBuffers.size(); i++) {
-			VkCommandBufferBeginInfo beginInfo = {};
+		for (size_t i = 0; i < commandBuffers.size(); i++) { //iterates through command buffers
+			VkCommandBufferBeginInfo beginInfo = {}; //struct for command buffer beginning information
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 			if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
@@ -677,7 +677,7 @@ private:
 			throw std::runtime_error("failed to submit draw command buffer!"); //throws runtime error
 		}
 
-		VkPresentInfoKHR presentInfo = {}; //struct containing information about the present
+		VkPresentInfoKHR presentInfo = {}; //struct containing information about the presentation
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR; //specifies struct type
 
 		presentInfo.waitSemaphoreCount = 1;
@@ -719,7 +719,7 @@ private:
 	}
 
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-		for (const auto& availablePresentMode : availablePresentModes) {
+		for (const auto& availablePresentMode : availablePresentModes) { //iterates through the available presentation modes
 			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				return availablePresentMode;
 			}
@@ -743,9 +743,9 @@ private:
 	}
 
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
-		SwapChainSupportDetails details;
+		SwapChainSupportDetails details; //declares struct for swap chain support details
 
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities); //gets the surface capabilites of the device
 
 		uint32_t formatCount;
 		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
@@ -758,26 +758,26 @@ private:
 		uint32_t presentModeCount;
 		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 
-		if (presentModeCount != 0) {
-			details.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+		if (presentModeCount != 0) { //if there are any available presentation modes
+			details.presentModes.resize(presentModeCount); //sets the number of presenation modes
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data()); //gets the surface presentation modes of the device
 		}
 
-		return details;
+		return details; //returns the details of the swap chain support
 	}
 
 	bool isDeviceSuitable(VkPhysicalDevice device) {
-		QueueFamilyIndices indices = findQueueFamilies(device); 
+		QueueFamilyIndices indices = findQueueFamilies(device);  //gets the queue families for the device
 
-		bool extensionsSupported = checkDeviceExtensionSupport(device);
+		bool extensionsSupported = checkDeviceExtensionSupport(device); //calls function to check the extension support for the device
 
-		bool swapChainAdequate = false;
-		if (extensionsSupported) {
-			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-			swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+		bool swapChainAdequate = false; //sets boolean to false
+		if (extensionsSupported) { //if the extensions are supported
+			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device); //checks swap chain support for the device
+			swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty(); //checks if the swap chain is adequate
 		}
 
-		return indices.isComplete() && extensionsSupported && swapChainAdequate;
+		return indices.isComplete() && extensionsSupported && swapChainAdequate; //returns whether the device is suitable or not
 	}
 
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
@@ -787,45 +787,45 @@ private:
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount); //allocates an array to hold extension details
 		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data()); //queries the extension details
 
-		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end()); //set containing the required extensions
 
 		for (const auto& extension : availableExtensions) { //iterates through array of available extensions
-			requiredExtensions.erase(extension.extensionName); 
+			requiredExtensions.erase(extension.extensionName); //removes the extension from the required extensions
 		}
 
 		return requiredExtensions.empty(); //returns true if list of required extensions is empty and false otherwise
 	}
 
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
-		QueueFamilyIndices indices;
+		QueueFamilyIndices indices; //declares indices for queue family
 
-		uint32_t queueFamilyCount = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+		uint32_t queueFamilyCount = 0; //sets the count for the number of queue families to 0
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr); //gets the number of queue families for the device
 
-		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount); //vector of queue family properties
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data()); //gets the queue families for the device
 
-		int i = 0;
-		for (const auto& queueFamily : queueFamilies) {
-			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				indices.graphicsFamily = i;
+		int i = 0; //sets i to 0
+		for (const auto& queueFamily : queueFamilies) { //iterates through the queue families
+			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) { //if the queues in the family support graphics operations
+				indices.graphicsFamily = i; //sets the graphics family of the indices to i
 			}
 
-			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+			VkBool32 presentSupport = false; //sets presentation support to false
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport); //checks if there is presentation support for the device
 
-			if (presentSupport) {
-				indices.presentFamily = i;
+			if (presentSupport) { //if there is presentation support
+				indices.presentFamily = i; //sets the presentation family of the indices to i
 			}
 
-			if (indices.isComplete()) {
-				break;
+			if (indices.isComplete()) { //if the indices is complete
+				break; //ends the current loop
 			}
 
-			i++;
+			i++; //updates i value
 		}
 
-		return indices;
+		return indices; //returns the indices
 	}
 
 	std::vector<const char*> getRequiredExtensions() {
@@ -877,7 +877,7 @@ private:
 		size_t fileSize = (size_t)file.tellg(); //gets the size of the file
 		std::vector<char> buffer(fileSize); //creates a vector of chars based on the size of the file
 
-		file.seekg(0);
+		file.seekg(0); //goes to the start of the information
 		file.read(buffer.data(), fileSize); //read the file into the buffer
 
 		file.close(); //closes the file stream
@@ -898,7 +898,7 @@ int main() {
 	try {
 		app.run(); //runs the application
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e) { //catches any exception
 		std::cerr << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
