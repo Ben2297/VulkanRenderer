@@ -1,38 +1,27 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(binding = 1) uniform sampler2D texSampler;
+layout(binding = 2) uniform sampler2D texSampler;
 
-layout(binding = 2) uniform LightingConstants{
-    vec3 lightPos; 
-	vec3 viewPos; 
-	vec3 lightColor;
-	vec3 objectColor;
-} lighting;
-
-layout(location = 0) in vec3 fragPos;
+layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec3 fragNormal;
+layout(location = 2) in vec3 fragLightVector;
+layout(location = 3) in vec3 fragEyeVector;
+layout(location = 4) in vec3 fragSpecularLighting;
+layout(location = 5) in vec3 fragDiffuseLighting;
+layout(location = 6) in vec3 fragAmbientLighting;
+layout(location = 7) in vec3 fragSpecularCoefficient;
+layout(location = 8) in vec3 fragNormal;
 
-layout(location = 0) out vec4 fragColor;
+layout(location = 0) out vec4 outColor;
 
 void main() {
-    float ambientStrength = 0.1;
-    vec3 ambient = ambientStrength * lighting.lightColor;
-  	
-    // diffuse 
-    vec3 norm = normalize(fragNormal);
-    vec3 lightDir = normalize(lighting.lightPos - fragPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lighting.lightColor;
-    
-    // specular
-    float specularStrength = 0.5;
-    vec3 viewDir = normalize(lighting.viewPos - fragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);  
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lighting.lightColor;  
-        
-    vec3 result = (ambient + diffuse + specular) * lighting.objectColor;
-    fragColor = vec4(result, 1.0);
+    vec3 ambientLight = fragAmbientLighting * fragColor;
+
+	vec3 normEyeVector = normalize(fragEyeVector);
+	vec3 normLightVector = normalize(fragLightVector);
+	vec3 normNormal = normalize(fragNormal);
+
+	float diffuseDotProduct = dot(normLightVector, normNormal);
+	vec3 diffuseLight = fragAmbientLighting * fragColor * diffuseDotProduct;
 }

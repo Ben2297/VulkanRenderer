@@ -106,12 +106,12 @@ struct Vertex {
 
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
 
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(Vertex, normal);
 
 		return attributeDescriptions;
@@ -129,10 +129,11 @@ struct UniformBufferObject {
 };
 
 struct LightingConstants {
-	glm::vec3 lightPos;
-	glm::vec3 viewPos;
-	glm::vec3 lightColor;
-	glm::vec3 objectColor;
+	alignas(16) glm::vec3 lightPosition;
+	alignas(16) glm::vec3 lightAmbient;
+	alignas(16) glm::vec3 lightDiffuse;
+	alignas(16) glm::vec3 lightSpecular;
+	alignas(4) float lightSpecularExponent;
 };
 
 namespace std {
@@ -616,8 +617,15 @@ private:
 		uboLayoutBinding.pImmutableSamplers = nullptr;
 		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+		VkDescriptorSetLayoutBinding lightingLayoutBinding = {};
+		uboLayoutBinding.binding = 1;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
 		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-		samplerLayoutBinding.binding = 1;
+		samplerLayoutBinding.binding = 2;
 		samplerLayoutBinding.descriptorCount = 1;
 		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		samplerLayoutBinding.pImmutableSamplers = nullptr;
@@ -1047,8 +1055,6 @@ private:
 					attrib.normals[3 * index.normal_index + 2]
 				};
 
-				
-
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
 					vertices.push_back(vertex);
@@ -1100,7 +1106,7 @@ private:
 	}
 
 	void createUniformBuffers() {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+		VkDeviceSize bufferSize = VK_WHOLE_SIZE;
 
 		uniformBuffers.resize(swapChainImages.size());
 		uniformBuffersMemory.resize(swapChainImages.size());
@@ -1145,7 +1151,7 @@ private:
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = uniformBuffers[i];
 			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
+			bufferInfo.range = VK_WHOLE_SIZE;
 
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1165,6 +1171,14 @@ private:
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[1].dstSet = descriptorSets[i];
 			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = descriptorSets[i];
+			descriptorWrites[1].dstBinding = 2;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[1].descriptorCount = 1;
@@ -1373,6 +1387,17 @@ private:
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
 		memcpy(data, &ubo, sizeof(ubo));
+		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
+
+		LightingConstants lighting = {};
+		lighting.lightPosition = glm::vec3(20.0f, 40.0f, 50.0f);
+		lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
+		lighting.lightDiffuse = glm::vec3(0.5f, 0.5f, 0.5f);
+		lighting.lightSpecular = glm::vec3(0.5f, 0.5f, 0.5f);
+		lighting.lightSpecularExponent = 0.6f;
+		
+		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(lighting), 0, &data);
+		memcpy(data, &lighting, sizeof(lighting));
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 	}
 
