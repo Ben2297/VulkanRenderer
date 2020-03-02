@@ -84,8 +84,8 @@ struct SwapChainSupportDetails {
 
 struct Vertex {
 	glm::vec3 pos; //vertex position
-	glm::vec3 color; // vertex colour
 	glm::vec2 texCoord; //texture coordinates
+	glm::vec3 normal; //vertex normal
 
 	static VkVertexInputBindingDescription getBindingDescription() { //describes at which rate to load data from memory throughout vertices
 		VkVertexInputBindingDescription bindingDescription = {};
@@ -107,18 +107,18 @@ struct Vertex {
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
+		attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
 
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+		attributeDescriptions[2].offset = offsetof(Vertex, normal);
 
 		return attributeDescriptions;
 	}
 
 	bool operator==(const Vertex& other) const {
-		return pos == other.pos && color == other.color && texCoord == other.texCoord;
+		return pos == other.pos && texCoord == other.texCoord && normal == other.normal;
 	}
 };
 
@@ -128,10 +128,17 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 proj;
 };
 
+struct LightingConstants {
+	glm::vec3 lightPos;
+	glm::vec3 viewPos;
+	glm::vec3 lightColor;
+	glm::vec3 objectColor;
+};
+
 namespace std {
 	template<> struct hash<Vertex> {
 		size_t operator()(Vertex const& vertex) const {
-			return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
+			return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^ (hash<glm::vec3>()(vertex.normal) << 1);
 		}
 	};
 }
@@ -1034,7 +1041,13 @@ private:
 					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 				};
 
-				vertex.color = { 1.0f, 1.0f, 1.0f };
+				vertex.normal = { 
+					attrib.normals[3 * index.normal_index + 0],
+					attrib.normals[3 * index.normal_index + 1],
+					attrib.normals[3 * index.normal_index + 2]
+				};
+
+				
 
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());

@@ -1,38 +1,38 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec4 fragLightVector;
-layout(location = 3) in vec4 fragEyeVector;
-layout(location = 4) in vec3 fragSpecularLighting;
-layout(location = 5) in vec3 fragDiffuseLighting;
-layout(location = 6) in vec3 fragAmbientLighting;
-layout(location = 7) in vec3 fragSpecularCoefficient;
-layout(location = 8) in vec3 fragNormal;
-
-layout(location = 0) out vec4 outColor;
-
 layout(binding = 1) uniform sampler2D texSampler;
 
+layout(binding = 2) uniform LightingConstants{
+    vec3 lightPos; 
+	vec3 viewPos; 
+	vec3 lightColor;
+	vec3 objectColor;
+} lighting;
+
+layout(location = 0) in vec3 fragPos;
+layout(location = 1) in vec2 fragTexCoord;
+layout(location = 2) in vec3 fragNormal;
+
+layout(location = 0) out vec4 fragColor;
+
 void main() {
-	vec4 ambientLight = fragAmbientLighting * fragColor;
-
-	vec4 normEyeVector = normalise(fragEyeVector);
-	vec4 normLightVector = normalise(fragLightVector);
-	vec4 normNormal = normalise(fragNormal);
-
-	float diffuseDotProductProduct = dot(normLightVector, normNormal);
-	vec4 diffuseLight = fragAmbientLighting * fragColor * diffuseDotProduct;
-
-	vec4 halfAngleVector = normalise((normEyeVector + normLightVector) / 2.0);
-	float specularDotProduct = dot(halfAngleVector, normNormal);
-	float specularPower = pow(specularDotProduct, fragSpecularCoefficient);
-	vec4 specularLight = fragSpecularLighting * fragColor * specularPower;
-
-	vec4 lightingColor = ambientLight + diffuseLight + specularLight;
-
-	vec4 textureColor = texture(texSampler, fragTexCoord);
-
-    outColor = lightingColor * textureColor;
+    float ambientStrength = 0.1;
+    vec3 ambient = ambientStrength * lighting.lightColor;
+  	
+    // diffuse 
+    vec3 norm = normalize(fragNormal);
+    vec3 lightDir = normalize(lighting.lightPos - fragPos);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * lighting.lightColor;
+    
+    // specular
+    float specularStrength = 0.5;
+    vec3 viewDir = normalize(lighting.viewPos - fragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lighting.lightColor;  
+        
+    vec3 result = (ambient + diffuse + specular) * lighting.objectColor;
+    fragColor = vec4(result, 1.0);
 }
