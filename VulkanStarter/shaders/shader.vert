@@ -7,7 +7,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
-layout(binding = 1) uniform LightingConstants{
+layout(binding = 1) uniform LightingConstants {
     vec3 lightPosition; 
 	vec3 lightAmbient; 
 	vec3 lightDiffuse;
