@@ -22,11 +22,11 @@ void main() {
 	vec3 normLightVector = normalize(fragLightVector);
 	vec3 normNormal = normalize(fragNormal);
 
-	float diffuseDotProduct = dot(normLightVector, normNormal);
+	float diffuseDotProduct = max(dot(normLightVector, normNormal), 0.0);
 	vec3 diffuseLight = fragAmbientLighting * fragColor * diffuseDotProduct;
 
 	vec3 halfAngleVector = normalize((normEyeVector + normLightVector) / 2.0);
-	float specularDotProduct = dot(halfAngleVector, normNormal);
+	float specularDotProduct = max(dot(halfAngleVector, normNormal), 0.0);
 	float specularPower = pow(specularDotProduct, fragSpecularCoefficient);
 	vec3 specularLight = fragSpecularLighting * fragColor * specularPower;
 
