@@ -12,27 +12,26 @@ layout(location = 5) in vec3 fragDiffuseLighting;
 layout(location = 6) in vec3 fragAmbientLighting;
 layout(location = 7) in float fragSpecularCoefficient;
 layout(location = 8) in vec3 fragNormal;
+layout(location = 9) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    vec3 ambientLight = fragAmbientLighting * fragColor;
+    vec3 ambient = fragAmbientLighting * fragColor;
 
-	vec3 normEyeVector = normalize(fragEyeVector);
-	vec3 normLightVector = normalize(fragLightVector);
-	vec3 normNormal = normalize(fragNormal);
+	vec3 norm = normalize(fragNormal);
+	vec3 lightDir = normalize(fragLightVector - fragPos);
+	float diff = max(dot(norm, lightDir), 0.0);
+	vec3 diffuse = diff * fragColor;
 
-	float diffuseDotProduct = max(dot(normLightVector, normNormal), 0.0);
-	vec3 diffuseLight = fragAmbientLighting * fragColor * diffuseDotProduct;
-
-	vec3 halfAngleVector = normalize((normEyeVector + normLightVector) / 2.0);
-	float specularDotProduct = max(dot(halfAngleVector, normNormal), 0.0);
-	float specularPower = pow(specularDotProduct, fragSpecularCoefficient);
-	vec3 specularLight = fragSpecularLighting * fragColor * specularPower;
-
-	vec3 lightingColor = ambientLight + diffuseLight + specularLight;
+	vec3 viewDir = normalize(fragEyeVector - fragPos);
+	vec3 reflectDir = reflect(-lightDir, norm);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	vec3 specular = fragSpecularCoefficient * spec * fragColor;
 
 	vec4 textureColor = texture(texSampler, fragTexCoord);
+
+	vec3 lightingColor = (ambient + diffuse + specular);
 
 	outColor = vec4(lightingColor, 1.0) * textureColor;
 }
