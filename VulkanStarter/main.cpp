@@ -297,9 +297,6 @@ private:
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-		}
-
-		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			vkDestroyBuffer(device, lightingBuffers[i], nullptr);
 			vkFreeMemory(device, lightingBuffersMemory[i], nullptr);
 		}
@@ -1148,7 +1145,6 @@ private:
 	void createDescriptorPool() {
 		std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
