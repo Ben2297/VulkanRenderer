@@ -631,11 +631,11 @@ private:
 		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding lightingLayoutBinding = {};
-		uboLayoutBinding.binding = 1;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.pImmutableSamplers = nullptr;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		lightingLayoutBinding.binding = 1;
+		lightingLayoutBinding.descriptorCount = 1;
+		lightingLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		lightingLayoutBinding.pImmutableSamplers = nullptr;
+		lightingLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 		samplerLayoutBinding.binding = 2;
@@ -1425,9 +1425,9 @@ private:
 		LightingConstants lighting = {};
 		lighting.lightPosition = glm::vec3(20.0f, 40.0f, 50.0f);
 		lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
-		lighting.lightDiffuse = glm::vec3(0.5f, 0.5f, 0.5f);
-		lighting.lightSpecular = glm::vec3(0.5f, 0.5f, 0.5f);
-		lighting.lightSpecularExponent = 0.6f;
+		lighting.lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+		lighting.lightSpecular = glm::vec3(0.288f, 0.288f, 0.288f);
+		lighting.lightSpecularExponent = 28.0f;
 		
 		vkMapMemory(device, lightingBuffersMemory[currentImage], 0, sizeof(lighting), 0, &data);
 		memcpy(data, &lighting, sizeof(lighting));
