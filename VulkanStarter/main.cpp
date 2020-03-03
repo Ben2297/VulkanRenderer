@@ -1182,9 +1182,9 @@ private:
 			bufferInfo.range = sizeof(UniformBufferObject);
 
 			VkDescriptorBufferInfo lightingBufferInfo = {};
-			bufferInfo.buffer = lightingBuffers[i];
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(LightingConstants);
+			lightingBufferInfo.buffer = lightingBuffers[i];
+			lightingBufferInfo.offset = 0;
+			lightingBufferInfo.range = sizeof(LightingConstants);
 
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
