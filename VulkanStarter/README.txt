@@ -1,0 +1,4 @@
+-Have .obj file in /models and .jpg file in /textures within project directory
+-Uses stb_image.h / tiny_obj_loader.h to load texture / object
+-Whilst rendering press L to toggle lighting and T to toggle the texture
+-Compile the shaders in /shaders before running program

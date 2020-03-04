@@ -5,6 +5,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
+	float renderTex;
 } ubo;
 
 layout(binding = 1) uniform LightingConstants {
@@ -30,6 +31,7 @@ layout(location = 6) out vec3 fragAmbientLighting;
 layout(location = 7) out float fragSpecularCoefficient;
 layout(location = 8) out vec3 fragNormal;
 layout(location = 9) out vec3 fragPos;
+layout(location = 10) out float fragRenderTex;
 
 void main() {
     fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
@@ -44,6 +46,8 @@ void main() {
 	fragDiffuseLighting = lighting.lightDiffuse;
 	fragAmbientLighting = lighting.lightAmbient;
 	fragSpecularCoefficient = lighting.lightSpecularExponent;
+
+	fragRenderTex = ubo.renderTex;
 
 	gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
 }

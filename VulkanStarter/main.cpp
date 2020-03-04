@@ -67,11 +67,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 	}
 }
 
-struct colour
-{
-	char r, g, b;
-};
-
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily; //optional value to store the graphics queue family
 	std::optional<uint32_t> presentFamily; //optional value to store the presentation queue family
@@ -137,6 +132,7 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
+	alignas(4) float renderTex;
 };
 
 struct LightingConstants {
@@ -1450,6 +1446,10 @@ private:
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 60.0f, 50.0f), glm::vec3(0.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 120.0f);
 		ubo.proj[1][1] *= -1;
+		ubo.renderTex = 1.0f;
+		if (!renderTexture) {
+			ubo.renderTex = 0.0f;
+		}
 
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
