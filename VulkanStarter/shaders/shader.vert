@@ -34,15 +34,16 @@ layout(location = 9) out vec3 fragPos;
 void main() {
     fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
-
-	gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
-
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
+
+	fragEyeVector = vec3(0.0f, 60.0f, 50.0f);
 
 	fragLightVector = lighting.lightPosition;
 	fragSpecularLighting = lighting.lightSpecular;
 	fragDiffuseLighting = lighting.lightDiffuse;
 	fragAmbientLighting = lighting.lightAmbient;
 	fragSpecularCoefficient = lighting.lightSpecularExponent;
+
+	gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
 }

@@ -17,21 +17,20 @@ layout(location = 9) in vec3 fragPos;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    vec3 ambient = fragAmbientLighting * fragColor;
+	vec3 textureColor = vec3(texture(texSampler, fragTexCoord));
 
-	vec3 norm = normalize(fragNormal);
+    vec3 ambient = fragAmbientLighting * textureColor;
+
 	vec3 lightDir = normalize(fragLightVector - fragPos);
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = diff * fragColor;
+	vec3 normal = normalize(fragNormal);
+	float diff = max(dot(normal, lightDir), 0.0);
+	vec3 diffuse = diff * textureColor;
 
 	vec3 viewDir = normalize(fragEyeVector - fragPos);
-	vec3 reflectDir = reflect(-lightDir, norm);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = fragSpecularCoefficient * spec * fragColor;
+	vec3 reflectDir = reflect(-lightDir, normal);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
+	vec3 specular = fragSpecularLighting * spec;
 
-	vec4 textureColor = texture(texSampler, fragTexCoord);
-
-	vec3 lightingColor = (ambient + diffuse + specular);
-
-	outColor = vec4(lightingColor, 1.0) * textureColor;
+	outColor = vec4(ambient + diffuse + specular, 1.0);
 }

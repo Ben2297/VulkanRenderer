@@ -1412,10 +1412,9 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubo.model = glm::rotate(ubo.model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 60.0f, 50.0f), glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 80.0f);
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 60.0f, 50.0f), glm::vec3(0.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 120.0f);
 		ubo.proj[1][1] *= -1;
 
 		void* data;
@@ -1424,8 +1423,8 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		LightingConstants lighting = {};
-		lighting.lightPosition = glm::vec3(0.0f, 0.0f, 60.0f);
-		lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
+		lighting.lightPosition = glm::vec3(20.0f, 40.0f, 70.0f);
+		lighting.lightAmbient = glm::vec3(0.2f, 0.2f, 0.2f);
 		lighting.lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
 		lighting.lightSpecular = glm::vec3(0.288f, 0.288f, 0.288f);
 		lighting.lightSpecularExponent = 28.0f;
