@@ -67,6 +67,11 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 	}
 }
 
+struct colour
+{
+	char r, g, b;
+};
+
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily; //optional value to store the graphics queue family
 	std::optional<uint32_t> presentFamily; //optional value to store the presentation queue family
@@ -132,6 +137,7 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
+	bool renderTex;
 };
 
 struct LightingConstants {
@@ -140,6 +146,10 @@ struct LightingConstants {
 	alignas(16) glm::vec3 lightDiffuse;
 	alignas(16) glm::vec3 lightSpecular;
 	alignas(4) float lightSpecularExponent;
+};
+
+struct RenderOptions {
+	bool renderTex;
 };
 
 namespace std {
@@ -208,6 +218,9 @@ private:
 	std::vector<VkBuffer> lightingBuffers;
 	std::vector<VkDeviceMemory> lightingBuffersMemory;
 
+	std::vector<VkBuffer> renderopsBuffers;
+	std::vector<VkDeviceMemory> renderopsBuffersMemory;
+
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
@@ -221,6 +234,10 @@ private:
 
 	bool framebufferResized = false;
 
+	bool renderTexture = true;
+
+	//colour image[1024][1024];
+
 	void initWindow() {
 		glfwInit();
 
@@ -229,11 +246,25 @@ private:
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+		glfwSetKeyCallback(window, key_callback);
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
+	}
+
+	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+			auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+			if (app->renderTexture) {
+				app->renderTexture = false;
+			}
+			else {
+				app->renderTexture = true;
+			}
+			
+		}
 	}
 
 	void initVulkan() {
@@ -258,6 +289,7 @@ private:
 		createIndexBuffer(); //creates the index buffer
 		createUniformBuffers(); //creates the uniform buffers
 		createLightingBuffers();
+		createRenderOpsBuffers();
 		createDescriptorPool(); //creates the descriptor pool
 		createDescriptorSets();
 		createCommandBuffers(); //creates the command buffers
@@ -299,6 +331,8 @@ private:
 			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
 			vkDestroyBuffer(device, lightingBuffers[i], nullptr);
 			vkFreeMemory(device, lightingBuffersMemory[i], nullptr);
+			vkDestroyBuffer(device, renderopsBuffers[i], nullptr);
+			vkFreeMemory(device, renderopsBuffersMemory[i], nullptr);
 		}
 
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -363,6 +397,7 @@ private:
 		createFramebuffers();
 		createUniformBuffers();
 		createLightingBuffers();
+		createRenderOpsBuffers();
 		createDescriptorPool();
 		createDescriptorSets();
 		createCommandBuffers();
@@ -644,7 +679,14 @@ private:
 		samplerLayoutBinding.pImmutableSamplers = nullptr;
 		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, lightingLayoutBinding, samplerLayoutBinding };
+		VkDescriptorSetLayoutBinding renderopsLayoutBinding = {};
+		renderopsLayoutBinding.binding = 3;
+		renderopsLayoutBinding.descriptorCount = 1;
+		renderopsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		renderopsLayoutBinding.pImmutableSamplers = nullptr;
+		renderopsLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, lightingLayoutBinding, samplerLayoutBinding, renderopsLayoutBinding };
 		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -1142,14 +1184,27 @@ private:
 		}
 	}
 
+	void createRenderOpsBuffers() {
+		VkDeviceSize bufferSize = sizeof(RenderOptions);
+
+		renderopsBuffers.resize(swapChainImages.size());
+		renderopsBuffersMemory.resize(swapChainImages.size());
+
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, renderopsBuffers[i], renderopsBuffersMemory[i]);
+		}
+	}
+
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 3> poolSizes = {};
+		std::array<VkDescriptorPoolSize, 4> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1191,7 +1246,12 @@ private:
 			imageInfo.imageView = textureImageView;
 			imageInfo.sampler = textureSampler;
 
-			std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+			VkDescriptorBufferInfo renderopsBufferInfo = {};
+			renderopsBufferInfo.buffer = renderopsBuffers[i];
+			renderopsBufferInfo.offset = 0;
+			renderopsBufferInfo.range = sizeof(RenderOptions);
+
+			std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
 
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1216,6 +1276,14 @@ private:
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[2].descriptorCount = 1;
 			descriptorWrites[2].pImageInfo = &imageInfo;
+
+			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[3].dstSet = descriptorSets[i];
+			descriptorWrites[3].dstBinding = 3;
+			descriptorWrites[3].dstArrayElement = 0;
+			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[3].descriptorCount = 1;
+			descriptorWrites[3].pBufferInfo = &renderopsBufferInfo;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -1416,6 +1484,7 @@ private:
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 60.0f, 50.0f), glm::vec3(0.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 120.0f);
 		ubo.proj[1][1] *= -1;
+		ubo.renderTex = renderTexture;
 
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -1432,6 +1501,13 @@ private:
 		vkMapMemory(device, lightingBuffersMemory[currentImage], 0, sizeof(lighting), 0, &data);
 		memcpy(data, &lighting, sizeof(lighting));
 		vkUnmapMemory(device, lightingBuffersMemory[currentImage]);
+
+		RenderOptions renderOptions = {};
+		renderOptions.renderTex = renderTexture;
+
+		vkMapMemory(device, renderopsBuffersMemory[currentImage], 0, sizeof(renderOptions), 0, &data);
+		memcpy(data, &renderOptions, sizeof(renderOptions));
+		vkUnmapMemory(device, renderopsBuffersMemory[currentImage]);
 	}
 
 	void drawFrame() {
