@@ -1424,7 +1424,7 @@ private:
 
 		LightingConstants lighting = {};
 		lighting.lightPosition = glm::vec3(20.0f, 40.0f, 70.0f);
-		lighting.lightAmbient = glm::vec3(0.2f, 0.2f, 0.2f);
+		lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
 		lighting.lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
 		lighting.lightSpecular = glm::vec3(0.288f, 0.288f, 0.288f);
 		lighting.lightSpecularExponent = 28.0f;
