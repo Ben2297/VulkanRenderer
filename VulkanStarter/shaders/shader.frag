@@ -3,10 +3,6 @@
 
 layout(binding = 2) uniform sampler2D texSampler;
 
-layout(binding = 3) uniform RenderOptions {
-	bool renderTex;
-} renderOptions;
-
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragLightVector;
@@ -22,23 +18,19 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 	vec3 textureColor = vec3(texture(texSampler, fragTexCoord));
-
-	vec3 ambient = fragColor;
-	if (renderOptions.renderTex) {
+	
+	vec3 off = {0.0f, 0.0f, 0.0f};
+	vec3 ambient = {0.0f, 0.0f, 0.0f};
+	if (fragAmbientLighting != off) {
 		ambient = fragAmbientLighting * textureColor;
 	} else {
-		ambient = fragAmbientLighting * fragColor;
+		ambient = textureColor;
 	}
-
+	
 	vec3 lightDir = normalize(fragLightVector - fragPos);
 	vec3 normal = normalize(fragNormal);
 	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 diffuse = {0.0f, 0.0f, 0.0f};
-	if (renderOptions.renderTex) {
-		vec3 diffuse = diff * textureColor;
-	} else {
-		vec3 diffuse = diff * fragColor;
-	}
+	vec3 diffuse = diff * textureColor;
 
 	vec3 viewDir = normalize(fragEyeVector - fragPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
