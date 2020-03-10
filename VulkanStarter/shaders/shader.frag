@@ -27,7 +27,7 @@ void main() {
 	vec3 off = {0.0f, 0.0f, 0.0f};
 	vec3 ambient = {0.0f, 0.0f, 0.0f};
 	if (fragAmbientLighting != off) {
-		ambient = fragAmbientLighting * textureColor;
+		ambient = (fragAmbientLighting * textureColor) * 0.5;
 	} else {
 		ambient = textureColor;
 	}
@@ -35,13 +35,13 @@ void main() {
 	vec3 lightDir = normalize(fragLightVector - fragPos);
 	vec3 normal = normalize(fragNormal);
 	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 diffuse = diff * fragDiffuseLighting * textureColor;
+	vec3 diffuse = (diff * (fragDiffuseLighting * textureColor) * 0.4);
 
 	vec3 viewDir = normalize(fragEyeVector - fragPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
-	vec3 specular = fragSpecularLighting * spec;
+	vec3 specular = (fragSpecularLighting * spec) * 0.4;
 
 	outColor = vec4(ambient + diffuse + specular, 1.0);
 }
