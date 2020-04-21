@@ -31,7 +31,7 @@
 const int WIDTH = 800; //constant value for width of window
 const int HEIGHT = 600; //constant value for height of window
 
-const std::string MODEL_PATH = "models/duck.obj";
+const std::string MODEL_PATH = "models/sphere.obj";
 const std::string TEXTURE_PATH = "textures/duck.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -133,6 +133,7 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 	alignas(4) float renderTex;
+	alignas(4) int furLength;
 };
 
 struct LightingConstants {
@@ -225,6 +226,8 @@ private:
 	bool renderTexture = true;
 	bool renderLighting = true;
 
+	int currentFurLength;
+
 	//colour image[1024][1024];
 
 	void initWindow() {
@@ -299,7 +302,6 @@ private:
 			glfwPollEvents(); //checks for events
 			drawFrame(); //calls the function to draw the frame
 		}
-
 		vkDeviceWaitIdle(device);
 	}
 
@@ -766,7 +768,13 @@ private:
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {}; //struct for color blend attachment information
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
+		colorBlendAttachment.blendEnable = VK_TRUE;
+		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 		VkPipelineColorBlendStateCreateInfo colorBlending = {}; //struct for color blending information
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -1385,7 +1393,7 @@ private:
 			renderPassInfo.renderArea.extent = swapChainExtent;
 
 			std::array<VkClearValue, 2> clearValues = {};
-			clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+			clearValues[0].color = { 0.16f, 0.56f, 0.81f, 1.0f };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -1443,13 +1451,14 @@ private:
 
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 60.0f, 50.0f), glm::vec3(0.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 120.0f);
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 50.0f, 60.0f), glm::vec3(0.0f, 0.0f, 20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
 		if (!renderTexture) {
 			ubo.renderTex = 0.0f;
 		}
+		ubo.furLength = 1;
 
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -1490,6 +1499,13 @@ private:
 		else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
+
+		/*currentFurLength = 0;
+		while (currentFurLength <= 10)
+		{
+			updateUniformBuffer(imageIndex);
+			currentFurLength += 1;
+		}*/
 
 		updateUniformBuffer(imageIndex);
 

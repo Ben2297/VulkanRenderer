@@ -6,6 +6,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
 	float renderTex;
+	int furLength;
 } ubo;
 
 layout(binding = 1) uniform LightingConstants {
@@ -34,12 +35,13 @@ layout(location = 9) out vec3 fragPos;
 layout(location = 10) out float fragRenderTex;
 
 void main() {
-    fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
+	vec3 pos = inPosition + inNormal * ubo.furLength;
+    fragPos = vec3(ubo.model * vec4(pos, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
 
-	fragEyeVector = vec3(0.0f, 60.0f, 50.0f);
+	fragEyeVector = vec3(0.0f, 50.0f, 60.0f);
 
 	fragLightVector = lighting.lightPosition;
 	fragSpecularLighting = lighting.lightSpecular;
