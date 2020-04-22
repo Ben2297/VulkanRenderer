@@ -6,7 +6,6 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
 	float renderTex;
-	int furLength;
 } ubo;
 
 layout(binding = 1) uniform LightingConstants {
@@ -17,10 +16,16 @@ layout(binding = 1) uniform LightingConstants {
 	float lightSpecularExponent;
 } lighting;
 
+layout(push_constant) uniform PushConstants
+{
+    int hairLength;
+} constants;
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
+layout(location = 4) in int inHairLength;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
@@ -35,13 +40,13 @@ layout(location = 9) out vec3 fragPos;
 layout(location = 10) out float fragRenderTex;
 
 void main() {
-	vec3 pos = inPosition + inNormal * ubo.furLength;
+	vec3 pos = inPosition + inNormal * constants.hairLength;
     fragPos = vec3(ubo.model * vec4(pos, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
 
-	fragEyeVector = vec3(0.0f, 50.0f, 60.0f);
+	fragEyeVector = vec3(0.0f, 40.0f, 30.0f);
 
 	fragLightVector = lighting.lightPosition;
 	fragSpecularLighting = lighting.lightSpecular;

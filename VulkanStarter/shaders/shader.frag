@@ -43,8 +43,17 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
-	float alphaValue = 1.0f;
+	float alphaValue = 0.0f;
 
+	vec3 black = {0.0f, 0.0f, 0.0f};
+	vec3 white = {1.0f, 1.0f, 1.0f};
 
-	outColor = vec4(ambient + diffuse + specular, 1.0);
+	if (textureColor == white)
+	{
+		alphaValue = 1.0f;
+	}
+
+	vec3 col = {0.87f, 0.12f, 0.16f};
+
+	outColor = vec4(col, alphaValue);
 }
