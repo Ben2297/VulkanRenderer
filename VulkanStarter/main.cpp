@@ -32,7 +32,7 @@ const int WIDTH = 800; //constant value for width of window
 const int HEIGHT = 600; //constant value for height of window
 
 const std::string MODEL_PATH = "models/sphere.obj";
-const std::string TEXTURE_PATH = "textures/furmap.jpg";
+const std::string TEXTURE_PATH = "textures/furmap.gif";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -87,7 +87,7 @@ struct Vertex {
 	glm::vec3 color; //vertex color
 	glm::vec2 texCoord; //texture coordinates
 	glm::vec3 normal; //vertex normal
-	int hairLength;
+	float hairLength; //hair length multiplier
 
 	static VkVertexInputBindingDescription getBindingDescription() { //describes at which rate to load data from memory throughout vertices
 		VkVertexInputBindingDescription bindingDescription = {};
@@ -123,7 +123,7 @@ struct Vertex {
 
 		attributeDescriptions[4].binding = 0;
 		attributeDescriptions[4].location = 4;
-		attributeDescriptions[4].format = VK_FORMAT_R32_SINT;
+		attributeDescriptions[4].format = VK_FORMAT_R32_SFLOAT;
 		attributeDescriptions[4].offset = offsetof(Vertex, hairLength);
 
 		return attributeDescriptions;
@@ -796,7 +796,7 @@ private:
 		VkPushConstantRange pushConstantInfo = { 0 };
 		pushConstantInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		pushConstantInfo.offset = 0;
-		pushConstantInfo.size = sizeof(int);
+		pushConstantInfo.size = sizeof(float);
 
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
@@ -1120,7 +1120,7 @@ private:
 					attrib.normals[3 * index.normal_index + 2]
 				};
 
-				vertex.hairLength = 0;
+				vertex.hairLength = 0.0f;
 
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
@@ -1425,14 +1425,14 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			int hairLength = 0;
+			float hairLength = 0.0f;
 
 			vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(hairLength), &hairLength);
 
-			while (hairLength <= 5)
+			while (hairLength <= 2.0f)
 			{
 				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-				hairLength += 1;
+				hairLength += 0.1f;
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(hairLength), &hairLength);
 			}
 			
@@ -1473,9 +1473,9 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.view = glm::lookAt(glm::vec3(40.0f, 30.0f, 0.0f), glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 200.0f);
+		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
 		if (!renderTexture) {
@@ -1489,7 +1489,7 @@ private:
 
 		LightingConstants lighting = {};
 		if (renderLighting) {
-			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 70.0f);
+			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 50.0f);
 			lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
 			lighting.lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
 			lighting.lightSpecular = glm::vec3(0.288f, 0.288f, 0.288f);

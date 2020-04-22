@@ -18,7 +18,7 @@ layout(binding = 1) uniform LightingConstants {
 
 layout(push_constant) uniform PushConstants
 {
-    int hairLength;
+    float hairLength;
 } constants;
 
 layout(location = 0) in vec3 inPosition;
@@ -38,6 +38,7 @@ layout(location = 7) out float fragSpecularCoefficient;
 layout(location = 8) out vec3 fragNormal;
 layout(location = 9) out vec3 fragPos;
 layout(location = 10) out float fragRenderTex;
+layout(location = 11) out float hairLen;
 
 void main() {
 	vec3 pos = inPosition + inNormal * constants.hairLength;
@@ -55,6 +56,8 @@ void main() {
 	fragSpecularCoefficient = lighting.lightSpecularExponent;
 
 	fragRenderTex = ubo.renderTex;
+
+	hairLen = constants.hairLength;
 
 	gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
 }
