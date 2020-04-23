@@ -49,6 +49,9 @@ void main() {
 	vec4 furData = texture(texSampler, fragTexCoord);
 	vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
 	furColor *= shadow;
+	
+	//float furVisibility = (currLayer > furData.r) ? 0.0 : furData.a;
+	//furColor.a = (currLayer == 0.0) ? 1.0 : furVisibility;
 
 	furColor.a = (currLayer == 0.0) ? 1.0 : furData.r;
 	
