@@ -16,6 +16,11 @@ layout(binding = 1) uniform LightingConstants {
 	float lightSpecularExponent;
 } lighting;
 
+layout(push_constant) uniform PushConstants
+{
+    float currentLayer;
+} constants;
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
@@ -32,12 +37,20 @@ layout(location = 7) out float fragSpecularCoefficient;
 layout(location = 8) out vec3 fragNormal;
 layout(location = 9) out vec3 fragPos;
 layout(location = 10) out float fragRenderTex;
+layout(location = 11) out float currLayer;
 
 void main() {
-    fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
+	vec3 gravity = {0.0f, 0.0f, -1.0f};
+	gravity = vec3(vec4(gravity, 1.0) * ubo.model);
+	float displacementFactor = pow(constants.currentLayer, 2);
+	float maxHairLength = 2.0f;
+	vec3 pos = inPosition + inNormal * maxHairLength * constants.currentLayer;
+	pos = pos + gravity * displacementFactor;
+
+    fragPos = vec3(ubo.model * vec4(pos, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
 	fragColor = inColor;
-	fragTexCoord = inTexCoord;
+	fragTexCoord = inTexCoord * 6.0;
 
 	fragEyeVector = vec3(40.0f, 10.0f, 10.0f);
 
@@ -48,6 +61,8 @@ void main() {
 	fragSpecularCoefficient = lighting.lightSpecularExponent;
 
 	fragRenderTex = ubo.renderTex;
+
+	currLayer = constants.currentLayer;
 
 	gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
 }

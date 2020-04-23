@@ -14,6 +14,7 @@ layout(location = 7) in float fragSpecularCoefficient;
 layout(location = 8) in vec3 fragNormal;
 layout(location = 9) in vec3 fragPos;
 layout(location = 10) in float fragRenderTex;
+layout(location = 11) in float currLayer;
 
 layout(location = 0) out vec4 outColor;
 
@@ -43,7 +44,14 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
+	float shadow = mix(0.4f, 1.0f, currLayer);
+
+	vec4 furData = texture(texSampler, fragTexCoord);
 	vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
+	furColor *= shadow;
+	
+	float furVisibility = (currLayer > furData.r) ? 0.0 : furData.a;
+	furColor.a = furVisibility;
 	
 	outColor = furColor;
 }
