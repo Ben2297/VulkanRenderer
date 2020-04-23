@@ -32,7 +32,7 @@ const int WIDTH = 800; //constant value for width of window
 const int HEIGHT = 600; //constant value for height of window
 
 const std::string MODEL_PATH = "models/sphere.obj";
-const std::string TEXTURE_PATH = "textures/furmap.gif";
+const std::string TEXTURE_PATH = "textures/furmap.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -230,10 +230,6 @@ private:
 
 	bool renderTexture = true;
 	bool renderLighting = true;
-
-	int currentFurLength = 0;
-
-	//colour image[1024][1024];
 
 	void initWindow() {
 		glfwInit();
@@ -765,8 +761,8 @@ private:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthTestEnable = VK_FALSE;
+		depthStencil.depthWriteEnable = VK_FALSE;
 		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
@@ -1425,15 +1421,17 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			float hairLength = 0.0f;
+			float currentLayer = 0.0f;
+			float maxLayer = 1.0f;
+			float noOfLayers = 40.0f;
 
-			vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(hairLength), &hairLength);
+			vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 
-			while (hairLength <= 2.0f)
+			while (currentLayer <= maxLayer)
 			{
 				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-				hairLength += 0.1f;
-				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(hairLength), &hairLength);
+				currentLayer += (maxLayer / noOfLayers);
+				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
@@ -1474,7 +1472,7 @@ private:
 
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(40.0f, 30.0f, 0.0f), glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(40.0f, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;

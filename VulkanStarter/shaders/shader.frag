@@ -14,33 +14,19 @@ layout(location = 7) in float fragSpecularCoefficient;
 layout(location = 8) in vec3 fragNormal;
 layout(location = 9) in vec3 fragPos;
 layout(location = 10) in float fragRenderTex;
-layout(location = 11) in float hairLen;
+layout(location = 11) in float currLayer;
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
 	vec3 textureColor = vec3(texture(texSampler, fragTexCoord));
+	float alpha = texture(texSampler, fragTexCoord).r;
 
 	if (fragRenderTex == 0.0f) {
 		textureColor = vec3(1.0f, 1.0f, 1.0f);
 	}
 
-	float alphaValue = 0.0f;
-
-	vec3 black = {0.0f, 0.0f, 0.0f};
-	vec3 white = {1.0f, 1.0f, 1.0f};
-
-	if (textureColor == black || hairLen == 0)
-	{
-		alphaValue = 1.0f;
-	}
-
-	textureColor = vec3(0.96f, 0.95f, 0.035f);
-
-	if (hairLen == 0)
-	{
-		textureColor = vec3(0.0f, 0.0f, 0.0f);
-	}
+	vec3 furColor = {0.96f, 0.95f, 0.035f};
 	
 	vec3 off = {0.0f, 0.0f, 0.0f};
 	vec3 ambient = {0.0f, 0.0f, 0.0f};
@@ -61,6 +47,13 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
+	float shadow = mix(0.4f, 1.0f, currLayer);
+	furColor *= shadow;
+
+	if (currLayer == 0.0f)
+	{
+		alpha = 1.0f;
+	}
 	
-	outColor = vec4(ambient + diffuse + specular, alphaValue);
+	outColor = vec4(furColor, alpha);
 }
