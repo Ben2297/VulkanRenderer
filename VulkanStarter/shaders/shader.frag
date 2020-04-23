@@ -20,13 +20,10 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 	vec3 textureColor = vec3(texture(texSampler, fragTexCoord));
-	float alpha = texture(texSampler, fragTexCoord).r;
 
 	if (fragRenderTex == 0.0f) {
 		textureColor = vec3(1.0f, 1.0f, 1.0f);
 	}
-
-	vec3 furColor = {0.96f, 0.95f, 0.035f};
 	
 	vec3 off = {0.0f, 0.0f, 0.0f};
 	vec3 ambient = {0.0f, 0.0f, 0.0f};
@@ -48,12 +45,12 @@ void main() {
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
 	float shadow = mix(0.4f, 1.0f, currLayer);
+
+	vec4 furData = texture(texSampler, fragTexCoord);
+	vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
 	furColor *= shadow;
 
-	if (currLayer == 0.0f)
-	{
-		alpha = 1.0f;
-	}
+	furColor.a = (currLayer == 0.0) ? 1.0 : furData.r;
 	
-	outColor = vec4(furColor, alpha);
+	outColor = furColor;
 }

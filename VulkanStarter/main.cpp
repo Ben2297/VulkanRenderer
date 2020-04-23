@@ -32,7 +32,7 @@ const int WIDTH = 800; //constant value for width of window
 const int HEIGHT = 600; //constant value for height of window
 
 const std::string MODEL_PATH = "models/sphere.obj";
-const std::string TEXTURE_PATH = "textures/furmap.jpg";
+const std::string TEXTURE_PATH = "textures/furmap.gif";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -87,7 +87,6 @@ struct Vertex {
 	glm::vec3 color; //vertex color
 	glm::vec2 texCoord; //texture coordinates
 	glm::vec3 normal; //vertex normal
-	float hairLength; //hair length multiplier
 
 	static VkVertexInputBindingDescription getBindingDescription() { //describes at which rate to load data from memory throughout vertices
 		VkVertexInputBindingDescription bindingDescription = {};
@@ -98,8 +97,8 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions = {};
+	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -120,11 +119,6 @@ struct Vertex {
 		attributeDescriptions[3].location = 3;
 		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[3].offset = offsetof(Vertex, normal);
-
-		attributeDescriptions[4].binding = 0;
-		attributeDescriptions[4].location = 4;
-		attributeDescriptions[4].format = VK_FORMAT_R32_SFLOAT;
-		attributeDescriptions[4].offset = offsetof(Vertex, hairLength);
 
 		return attributeDescriptions;
 	}
@@ -761,8 +755,8 @@ private:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = VK_FALSE;
-		depthStencil.depthWriteEnable = VK_FALSE;
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
 		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
@@ -1115,8 +1109,6 @@ private:
 					attrib.normals[3 * index.normal_index + 1],
 					attrib.normals[3 * index.normal_index + 2]
 				};
-
-				vertex.hairLength = 0.0f;
 
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());

@@ -25,7 +25,6 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
-layout(location = 4) in float inHairLength;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
@@ -47,7 +46,7 @@ void main() {
     fragPos = vec3(ubo.model * vec4(pos, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
 	fragColor = inColor;
-	fragTexCoord = inTexCoord;
+	fragTexCoord = inTexCoord * 5.0;
 
 	fragEyeVector = vec3(40.0f, 10.0f, 10.0f);
 
