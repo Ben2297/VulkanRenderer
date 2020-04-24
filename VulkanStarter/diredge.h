@@ -24,21 +24,13 @@ namespace diredge
         std::vector<glm::vec3> position;
 		std::vector<glm::vec3> triangleNormal;
 
-        std::vector<long> faceVertices;
-        std::vector<long> otherHalf;
-        std::vector<long> firstDirectedEdge;
+        std::vector<uint32_t> faceVertices;
+        std::vector<uint32_t> otherHalf;
+        std::vector<uint32_t> firstDirectedEdge;
     };
 
-	struct Vertex 
-	{
-		glm::vec3 pos; //vertex position
-		glm::vec3 color; //vertex color
-		glm::vec2 texCoord; //texture coordinates
-		glm::vec3 normal; //vertex normal
-	};
-
     // Makes a half edge mesh data structure from a triangle soup.
-    diredgeMesh createMesh(std::vector<Vertex>, std::vector<uint32_t>);
+    diredgeMesh createMesh(std::vector<glm::vec3>, std::vector<glm::vec3>, std::vector<uint32_t>);
 
     // Makes a triangle soup from the half edge mesh data structure.
     std::vector<glm::vec3> makeSoup(diredgeMesh);

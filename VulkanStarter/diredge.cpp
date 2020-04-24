@@ -1,18 +1,31 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <iomanip>
 
 #include "diredge.h"
 
 using namespace std;
 using namespace diredge;
 
-diredgeMesh diredge::createMesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
+diredgeMesh diredge::createMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<uint32_t> indices)
 {
     diredgeMesh mesh;
 
-    mesh.faceVertices.resize(vertices.size(), -1);
-    //mesh.normal.resize(vertices.size()/3, glm::vec3(0.0, 0.0, 0.0));
+	mesh.position = vertices;
+	mesh.normal = normals;
+    mesh.faceVertices = indices;
+
+	/*for (long i = 0; i < mesh.position.size(); i++)
+	{
+		std::cout << std::setprecision(10) << "Vertex " << i << ": " << mesh.position[i].x << ", " << mesh.position[i].y << ", " << mesh.position[i].z << std::endl;
+	}
+
+	for (long i = 0; i < mesh.faceVertices.size(); i++)
+	{
+		std::cout << "Index " << i << ": " << mesh.faceVertices[i] << std::endl;
+	}*/
+	
     //makeFaceIndices(vertices., mesh);
 
     //mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);

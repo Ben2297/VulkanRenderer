@@ -28,6 +28,8 @@
 #include <chrono>
 #include <unordered_map>
 
+#include "diredge.h"
+
 const int WIDTH = 1000; //constant value for width of window
 const int HEIGHT = 800; //constant value for height of window
 
@@ -124,7 +126,7 @@ struct Vertex {
 	}
 
 	bool operator==(const Vertex& other) const {
-		return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
+		return pos == other.pos && color == other.color && texCoord == other.texCoord;
 	}
 };
 
@@ -146,7 +148,9 @@ struct LightingConstants {
 namespace std {
 	template<> struct hash<Vertex> {
 		size_t operator()(Vertex const& vertex) const {
-			return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
+			return ((hash<glm::vec3>()(vertex.pos) ^
+				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+				(hash<glm::vec2>()(vertex.texCoord) << 1);
 		}
 	};
 }
@@ -1430,6 +1434,18 @@ private:
 				indices.push_back(uniqueVertices[vertex]);
 			}
 		}
+		std::vector<glm::vec3> positions;
+		for (long i = 0; i < vertices.size(); i++)
+		{
+			positions.push_back(vertices[i].pos);
+		}
+
+		std::vector<glm::vec3> normals;
+		for (long i = 0; i < vertices.size(); i++)
+		{
+			normals.push_back(vertices[i].normal);
+		}
+		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
 	}
 
 	void createVertexBuffer() {
