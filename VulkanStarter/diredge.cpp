@@ -7,33 +7,33 @@
 using namespace std;
 using namespace diredge;
 
-diredgeMesh diredge::createMesh(std::vector<glm::vec3> raw_vertices)
+diredgeMesh diredge::createMesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
 {
     diredgeMesh mesh;
 
-    mesh.faceVertices.resize(raw_vertices.size(), -1);
-    mesh.normal.resize(raw_vertices.size()/3, glm::vec3(0.0, 0.0, 0.0));
-    makeFaceIndices(raw_vertices, mesh);
+    mesh.faceVertices.resize(vertices.size(), -1);
+    //mesh.normal.resize(vertices.size()/3, glm::vec3(0.0, 0.0, 0.0));
+    //makeFaceIndices(vertices., mesh);
 
-    mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
-    mesh.firstDirectedEdge.resize(mesh.position.size(), NO_SUCH_ELEMENT);
-    makeDirectedEdges(mesh);
+    //mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
+    //mesh.firstDirectedEdge.resize(mesh.position.size(), NO_SUCH_ELEMENT);
+    //makeDirectedEdges(mesh);
 
     return mesh;
 }
 
-void diredge::makeFaceIndices(std::vector<glm::vec3> raw_vertices, diredgeMesh &mesh)
+void diredge::makeFaceIndices(std::vector<glm::vec3> vertices, diredgeMesh &mesh)
 {
     // set the initial vertex ID
     long nextVertexID = 0;
 
     // loop through the vertices
-    for (unsigned long vertex = 0; vertex < raw_vertices.size(); vertex++)
+    for (unsigned long vertex = 0; vertex < vertices.size(); vertex++)
     { // vertex loop
         // first see if the vertex already exists
         for (unsigned long other = 0; other < vertex; other++)
         { // per other
-            if (raw_vertices[vertex] == raw_vertices[other])
+            if (vertices[vertex] == vertices[other])
                 mesh.faceVertices[vertex] = mesh.faceVertices[other];
         } // per other
         // if not set, set to next available
@@ -44,12 +44,12 @@ void diredge::makeFaceIndices(std::vector<glm::vec3> raw_vertices, diredgeMesh &
     // id of next vertex to write
     long writeID = 0;
 
-    for (long vertex = 0; vertex < raw_vertices.size(); vertex++)
+    for (long vertex = 0; vertex < vertices.size(); vertex++)
     { 
         // if it's the first time found
         if (writeID == mesh.faceVertices[vertex])
         { 
-            mesh.position.push_back(raw_vertices[vertex]);
+            mesh.position.push_back(vertices[vertex]);
             writeID++;
         }
     }
@@ -151,7 +151,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
             // now compute the normal vector
 			glm::vec3 uVec = *v2 - *v0;
 			glm::vec3 vVec = *v1 - *v0;
-			glm::vec3 faceNormal = uVec.cross(vVec);
+			glm::vec3 faceNormal = glm::cross(uVec, vVec);
             mesh.normal[vertex] = mesh.normal[vertex] + faceNormal;
 
             // flip to the other half
@@ -172,7 +172,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         } // wrong cycle length
 
         // normalise the vertex normal
-        mesh.normal[vertex] = mesh.normal[vertex].normalise();
+        mesh.normal[vertex] = glm::normalize(mesh.normal[vertex]);
     } // for each vertex
 
 }
