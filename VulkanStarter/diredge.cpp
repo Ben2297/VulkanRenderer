@@ -14,23 +14,12 @@ diredgeMesh diredge::createMesh(std::vector<glm::vec3> vertices, std::vector<glm
 
 	mesh.position = vertices;
 	mesh.normal = normals;
-    mesh.faceVertices = indices;
+	mesh.faceVertices = indices;
+	mesh.triangleNormal.resize((indices.size() / 3), glm::vec3(0.0, 0.0, 0.0));
 
-	/*for (long i = 0; i < mesh.position.size(); i++)
-	{
-		std::cout << std::setprecision(10) << "Vertex " << i << ": " << mesh.position[i].x << ", " << mesh.position[i].y << ", " << mesh.position[i].z << std::endl;
-	}
-
-	for (long i = 0; i < mesh.faceVertices.size(); i++)
-	{
-		std::cout << "Index " << i << ": " << mesh.faceVertices[i] << std::endl;
-	}*/
-	
-    //makeFaceIndices(vertices., mesh);
-
-    //mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
-    //mesh.firstDirectedEdge.resize(mesh.position.size(), NO_SUCH_ELEMENT);
-    //makeDirectedEdges(mesh);
+    mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
+    mesh.firstDirectedEdge.resize(mesh.position.size(), NO_SUCH_ELEMENT);
+    makeDirectedEdges(mesh);
 
     return mesh;
 }
@@ -133,7 +122,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         if (nMatches == 0)
         { // non-manifold edge
             printf("Error: Directed Edge %ld (%ld, %ld) matched no other edge\n", dirEdge, from, to);
-            exit(0);
+            //exit(0);
         } // non-manifold edge
 
     } // for each other directed edge
@@ -165,7 +154,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
 			glm::vec3 uVec = *v2 - *v0;
 			glm::vec3 vVec = *v1 - *v0;
 			glm::vec3 faceNormal = glm::cross(uVec, vVec);
-            mesh.normal[vertex] = mesh.normal[vertex] + faceNormal;
+            mesh.triangleNormal[vertex] = mesh.triangleNormal[vertex] + faceNormal;
 
             // flip to the other half
             long edgeFlip = mesh.otherHalf[outEdge];
@@ -185,7 +174,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         } // wrong cycle length
 
         // normalise the vertex normal
-        mesh.normal[vertex] = glm::normalize(mesh.normal[vertex]);
+        mesh.triangleNormal[vertex] = glm::normalize(mesh.triangleNormal[vertex]);
     } // for each vertex
 
 }

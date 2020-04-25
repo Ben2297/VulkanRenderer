@@ -20,8 +20,8 @@ namespace diredge
 {
     struct diredgeMesh
     {
+		std::vector<glm::vec3> position;
         std::vector<glm::vec3> normal;
-        std::vector<glm::vec3> position;
 		std::vector<glm::vec3> triangleNormal;
 
         std::vector<uint32_t> faceVertices;
