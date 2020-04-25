@@ -1450,8 +1450,26 @@ private:
 		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
 
 		faceNormals = mesh.normal;
+		glm::vec3 eyeVec = { 40.0, 10.0, 10.0 };
 
+		long count = 0;
+		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++)
+		{
+			glm::vec3 faceNormA = mesh.normal[currentEdge / 3];
+			glm::vec3 faceNormB = mesh.normal[mesh.otherHalf[currentEdge] / 3];
 
+			float tempA = glm::dot(eyeVec, faceNormA);
+			float tempB = glm::dot(eyeVec, faceNormB);
+
+			bool test = ((tempA >= 0 && tempB >= 0) || (tempA < 0 && tempB < 0));
+			
+			if (!test)
+			{
+				count += 1; 
+			}
+			
+		}
+		std::cout << "Number of silhouette edges: " << count << std::endl;
 	}
 
 	void createVertexBuffer() {
