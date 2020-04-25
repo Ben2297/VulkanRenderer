@@ -204,6 +204,7 @@ private:
 
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<glm::vec3> faceNormals;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
 	VkBuffer indexBuffer;
@@ -1403,9 +1404,6 @@ private:
 
 		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
-		std::vector<Vertex> diredgeVertices;
-		std::vector<uint32_t> indicesCopy;
-
 		for (const auto& shape : shapes) {
 			for (const auto& index : shape.mesh.indices) {
 				Vertex vertex = {};
@@ -1434,25 +1432,26 @@ private:
 					vertices.push_back(vertex);
 				}
 
-				diredgeVertices.push_back(vertex);
-
 				indices.push_back(uniqueVertices[vertex]);
 			}
 		}
 		std::vector<glm::vec3> positions;
-		for (long i = 0; i < diredgeVertices.size(); i++)
+		for (long i = 0; i < vertices.size(); i++)
 		{
-			positions.push_back(diredgeVertices[i].pos);
+			positions.push_back(vertices[i].pos);
 		}
 
 		std::vector<glm::vec3> normals;
-		for (long i = 0; i < diredgeVertices.size(); i++)
+		for (long i = 0; i < vertices.size(); i++)
 		{
-			normals.push_back(diredgeVertices[i].normal);
+			normals.push_back(vertices[i].normal);
 		}
 
-		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indicesCopy);
-		
+		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
+
+		faceNormals = mesh.normal;
+
+
 	}
 
 	void createVertexBuffer() {

@@ -12,10 +12,14 @@ diredgeMesh diredge::createMesh(std::vector<glm::vec3> vertices, std::vector<glm
 {
     diredgeMesh mesh;
 
-	mesh.position = vertices;
-	mesh.normal = normals;
-	mesh.faceVertices = indices;
-	mesh.triangleNormal.resize((indices.size() / 3), glm::vec3(0.0, 0.0, 0.0));
+	std::vector<glm::vec3> raw_vertices;
+	for (long i = 0; i < indices.size(); i++)
+	{
+		raw_vertices.push_back(vertices[indices[i]]);
+	}
+	mesh.faceVertices.resize(raw_vertices.size(), -1);
+	mesh.normal.resize((raw_vertices.size() / 3), glm::vec3(0.0, 0.0, 0.0));
+	makeFaceIndices(raw_vertices, mesh);
 
     mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
     mesh.firstDirectedEdge.resize(mesh.position.size(), NO_SUCH_ELEMENT);
@@ -154,7 +158,8 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
 			glm::vec3 uVec = *v2 - *v0;
 			glm::vec3 vVec = *v1 - *v0;
 			glm::vec3 faceNormal = glm::cross(uVec, vVec);
-            mesh.triangleNormal[vertex] = mesh.triangleNormal[vertex] + faceNormal;
+            mesh.normal[vertex] = mesh.normal[vertex] + faceNormal;
+			//std::cout << "Normal: " << mesh.normal[vertex].x << ", " << mesh.normal[vertex].y << ", " << mesh.normal[vertex].z << std::endl;
 
             // flip to the other half
             long edgeFlip = mesh.otherHalf[outEdge];
@@ -174,7 +179,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         } // wrong cycle length
 
         // normalise the vertex normal
-        mesh.triangleNormal[vertex] = glm::normalize(mesh.triangleNormal[vertex]);
+        mesh.normal[vertex] = glm::normalize(mesh.normal[vertex]);
     } // for each vertex
 
 }
