@@ -203,10 +203,14 @@ private:
 	VkSampler textureSampler;
 
 	std::vector<Vertex> vertices;
+	std::vector<Vertex> quadVertices;
 	std::vector<uint32_t> indices;
+	std::vector<uint32_t> quadIndices;
 	std::vector<glm::vec3> faceNormals;
 	VkBuffer vertexBuffer;
+	VkBuffer vertexQuadBuffer;
 	VkDeviceMemory vertexBufferMemory;
+	VkDeviceMemory vertexQuadBufferMemory;
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
 
@@ -358,6 +362,9 @@ private:
 
 		vkDestroyBuffer(device, vertexBuffer, nullptr);
 		vkFreeMemory(device, vertexBufferMemory, nullptr);
+
+		vkDestroyBuffer(device, vertexQuadBuffer, nullptr);
+		vkFreeMemory(device, vertexQuadBufferMemory, nullptr);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -1430,9 +1437,11 @@ private:
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
 					vertices.push_back(vertex);
+					quadVertices.push_back(vertex);
 				}
 
 				indices.push_back(uniqueVertices[vertex]);
+				quadIndices.push_back(uniqueVertices[vertex]);
 			}
 		}
 		std::vector<glm::vec3> positions;
@@ -1469,7 +1478,17 @@ private:
 			}
 			
 		}
+
 		std::cout << "Number of silhouette edges: " << count << std::endl;
+
+		/*glm::vec3 vertex1 = { 4.0, 0.0, 0.0 };
+		glm::vec3 vertex2 = { 0.0, 0.0, 0.0 };
+		glm::vec3 vertex3 = { 0.0, 4.0, 0.0 };
+		glm::vec3 vertex4 = { 4.0, 4.0, 0.0 };
+
+		quadIndices = { 0, 1, 2, 3 };*/
+
+
 	}
 
 	void createVertexBuffer() {
@@ -1487,6 +1506,21 @@ private:
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
 		copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+		bufferSize = sizeof(quadVertices[0]) * quadVertices.size();
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, quadVertices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemory);
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexQuadBuffer, vertexQuadBufferMemory);
+
+		copyBuffer(stagingBuffer, vertexQuadBuffer, bufferSize);
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -1757,8 +1791,8 @@ private:
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-			VkBuffer vertexBuffers[] = { vertexBuffer };
-			VkDeviceSize offsets[] = { 0 };
+			VkBuffer vertexBuffers[] = { vertexBuffer, vertexQuadBuffer };
+			VkDeviceSize offsets[] = { 0, 1 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
@@ -1785,10 +1819,22 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
+
+			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
+
+			vkCmdBindVertexBuffers(commandBuffers[i], 1, 1, vertexBuffers, offsets);
+
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 

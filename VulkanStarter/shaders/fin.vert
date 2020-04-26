@@ -45,7 +45,6 @@ void main() {
 	float displacementFactor = pow(constants.currentLayer, 2);
 	float maxHairLength = 2.0f;
 	vec3 pos = inPosition + inNormal * maxHairLength * constants.currentLayer;
-	pos = pos + gravity * displacementFactor;
 
     fragPos = vec3(ubo.model * vec4(pos, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
