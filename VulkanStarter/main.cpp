@@ -1470,7 +1470,7 @@ private:
 
 		uniqueVertices.clear();
 
-		bool draw = true;
+		long count = 0;
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
@@ -1482,23 +1482,19 @@ private:
 
 			bool test = (tempA * tempB) < 0;
 			
-			if (test && draw)
+			if (test && count < 10)
 			{
-				draw = false;
-				/*glm::vec3 vertA = { mesh.position[mesh.faceVertices[currentEdge]] };
-				glm::vec3 vertB = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
-				glm::vec3 vertC = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]]};
-				glm::vec3 vertD = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[currentEdge]] };*/
+				count += 1;
 
-				glm::vec3 vertA = { 4.0, 0.0, -20.0 };
-				glm::vec3 vertB = { 0.0, 4.0, -20.0 };
-				glm::vec3 vertC = { 0.0, 0.0, -20.0 };
-				glm::vec3 vertD = { 4.0, 4.0, -20.0 };
+				glm::vec3 vertA = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
+				glm::vec3 vertB = { mesh.position[mesh.faceVertices[currentEdge]] };
+				glm::vec3 vertC = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
+				glm::vec3 vertD = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
 
 				Vertex vertex = {};
 
 				vertex.pos = vertA;
-				vertex.color = { 1.0f, 0.0f, 0.0f };
+				vertex.color = { 1.0f, 1.0f, 1.0f };
 				vertex.texCoord = { 0.0 , 1.0 };
 				vertex.normal = eyeVec;
 
@@ -1510,7 +1506,6 @@ private:
 				quadIndices.push_back(uniqueVertices[vertex]);
 
 				vertex.pos = vertB;
-				vertex.color = { 1.0f, 0.0f, 0.0f };
 				vertex.texCoord = { 0.0 , 0.0 };
 
 				if (uniqueVertices.count(vertex) == 0) {
@@ -1521,7 +1516,26 @@ private:
 				quadIndices.push_back(uniqueVertices[vertex]);
 
 				vertex.pos = vertC;
-				vertex.color = { 0.0f, 1.0f, 0.0f };
+				vertex.texCoord = { 1.0 , 1.0 };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
+
+				vertex.pos = vertB;
+				vertex.texCoord = { 0.0 , 0.0 };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
+
+				vertex.pos = vertC;
 				vertex.texCoord = { 1.0 , 1.0 };
 
 				if (uniqueVertices.count(vertex) == 0) {
@@ -1532,7 +1546,6 @@ private:
 				quadIndices.push_back(uniqueVertices[vertex]);
 
 				vertex.pos = vertD;
-				vertex.color = { 0.0f, 0.0f, 1.0f };
 				vertex.texCoord = { 1.0 , 0.0 };
 
 				if (uniqueVertices.count(vertex) == 0) {
