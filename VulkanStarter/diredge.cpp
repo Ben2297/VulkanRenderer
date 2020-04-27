@@ -12,8 +12,6 @@ diredgeMesh diredge::createMesh(std::vector<glm::vec3> vertices, std::vector<glm
 {
     diredgeMesh mesh;
 
-	mesh.tempNormals = normals;
-
 	std::vector<glm::vec3> raw_vertices;
 	for (long i = 0; i < indices.size(); i++)
 	{
@@ -163,7 +161,6 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
 			glm::vec3 vVec = *v1 - *v0;
 			glm::vec3 faceNormal = glm::cross(uVec, vVec);
             mesh.faceNormal[vertex] = mesh.faceNormal[vertex] + faceNormal;
-			//std::cout << "Normal: " << mesh.normal[vertex].x << ", " << mesh.normal[vertex].y << ", " << mesh.normal[vertex].z << std::endl;
 
             // flip to the other half
             long edgeFlip = mesh.otherHalf[outEdge];

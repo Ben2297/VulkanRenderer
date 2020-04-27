@@ -1426,7 +1426,7 @@ private:
 					attrib.vertices[3 * index.vertex_index + 1],
 					attrib.vertices[3 * index.vertex_index + 2]
 				};
-
+				
 				vertex.color = { 1.0f, 1.0f, 1.0f };
 
 				vertex.texCoord = {
@@ -1446,6 +1446,7 @@ private:
 				}
 
 				indices.push_back(uniqueVertices[vertex]);
+
 			}
 		}
 		std::vector<glm::vec3> positions;
@@ -1461,24 +1462,17 @@ private:
 		}
 
 		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
-
-		std::cout << indices.size() << " : " << mesh.faceVertices.size() << std::endl;
-
 		faceNormals = mesh.faceNormal;
-		glm::vec3 eyeVec = { 30.0, 0.0, 30.0 };
-		eyeVec = glm::normalize(eyeVec);
-
 		uniqueVertices.clear();
 
 		long count = 0;
 
-		for (long i = 0; i < mesh.faceVertices.size(); i++)
+		/*for (long i = 0; i < mesh.faceVertices.size(); i++)
 		{
 			Vertex vertex = {};
 
-			vertex.pos = mesh.position[mesh.faceVertices[i]];
 			vertex.color = { 1.0f, 1.0f, 1.0f };
-			vertex.texCoord = vertices[indices[i]].normal;
+			vertex.texCoord = vertices[indices[i]].texCoord;
 			vertex.normal = mesh.normal[mesh.faceVertices[i]];
 
 			if (uniqueVertices.count(vertex) == 0) {
@@ -1487,77 +1481,80 @@ private:
 			}
 
 			quadIndices.push_back(uniqueVertices[vertex]);
-		}
+		}*/
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
+			glm::vec3 vecA = { 30.0, 10.0, 30.0 };
+			glm::vec3 vecB = mesh.position[mesh.faceVertices[currentEdge]];
+			glm::vec3 eyeVec = (vecA - vecB);
+			eyeVec = glm::normalize(eyeVec);
+
 			glm::vec3 faceNormA = mesh.faceNormal[currentEdge / 3];
 			glm::vec3 faceNormB = mesh.faceNormal[mesh.otherHalf[currentEdge] / 3];
 
-			float tempA = glm::dot(faceNormA, eyeVec);
-			float tempB = glm::dot(faceNormB, eyeVec);
+			float tempA = glm::dot(eyeVec, faceNormA);
+			float tempB = glm::dot(eyeVec, faceNormB);
 
 			bool test = (tempA * tempB) < 0;
-			
-			/*if (test && count < 20)
+
+			if (test)
 			{
 				count += 1;
 
-				glm::vec3 vertA = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
-				glm::vec3 vertB = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
-				glm::vec3 vertC = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
-				glm::vec3 vertD = { mesh.position[mesh.faceVertices[currentEdge]] };
+				Vertex vertexA = {};
+				Vertex vertexB = {};
+				Vertex vertexC = {};
+				Vertex vertexD = {};
 
-				Vertex vertex = {};
+				vertexA.pos = mesh.position[mesh.faceVertices[currentEdge]];
+				vertexA.color = { 1.0f, 1.0f, 1.0f };
+				vertexA.texCoord = { 0.0 , 1.0 };
+				vertexA.normal = eyeVec;
 
-				vertex.pos = vertA;
-				vertex.color = { 1.0f, 1.0f, 1.0f };
-				vertex.texCoord = { 0.0 , 0.0 };
-				vertex.normal = eyeVec;
+				vertexB.pos = mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]];
+				vertexB.color = { 1.0f, 1.0f, 1.0f };
+				vertexB.texCoord = { 1.0 , 1.0 };
+				vertexB.normal = eyeVec;
 
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
+				vertexC.pos = (mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]]);
+				vertexC.color = { 1.0f, 1.0f, 1.0f };
+				vertexC.texCoord = { 0.0 , 0.0 };
+				vertexC.normal = eyeVec;
+
+				vertexD.pos = {0.0, 0.0, 0.0};
+				vertexD.color = { 1.0f, 1.0f, 1.0f };
+				vertexD.texCoord = { 0.0 , 1.0 };
+				vertexD.normal = eyeVec;
+
+				if (uniqueVertices.count(vertexA) == 0) {
+					uniqueVertices[vertexA] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertexA);
 				}
 
-				quadIndices.push_back(uniqueVertices[vertex]);
+				quadIndices.push_back(uniqueVertices[vertexA]);
 
-				vertex.pos = vertB;
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
+				if (uniqueVertices.count(vertexB) == 0) {
+					uniqueVertices[vertexB] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertexB);
 				}
 
-				quadIndices.push_back(uniqueVertices[vertex]);
+				quadIndices.push_back(uniqueVertices[vertexB]);
 
-				vertex.pos = vertC;
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
+				if (uniqueVertices.count(vertexC) == 0) {
+					uniqueVertices[vertexC] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertexC);
 				}
 
-				quadIndices.push_back(uniqueVertices[vertex]);
+				quadIndices.push_back(uniqueVertices[vertexC]);
 
-				vertex.pos = vertD;
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
+				/*if (uniqueVertices.count(vertexD) == 0) {
+					uniqueVertices[vertexD] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertexD);
 				}
 
-				quadIndices.push_back(uniqueVertices[vertex]);
-
-				vertex.pos = vertA;
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
-				}
-
-				quadIndices.push_back(uniqueVertices[vertex]);
-			}*/
+				quadIndices.push_back(uniqueVertices[vertexD]);*/
+			}
 		}
 	}
 
@@ -1891,7 +1888,7 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 			
@@ -1967,8 +1964,8 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.view = glm::lookAt(glm::vec3(30.0f, 0.0f, 30.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;

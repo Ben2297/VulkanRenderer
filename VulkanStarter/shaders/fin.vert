@@ -45,7 +45,7 @@ void main() {
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
 
-	fragEyeVector = vec3(30.0f, 0.0f, 30.0f);
+	fragEyeVector = vec3(30.0f, 10.0f, 30.0f);
 
 	fragLightVector = lighting.lightPosition;
 	fragSpecularLighting = lighting.lightSpecular;
