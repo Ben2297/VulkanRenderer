@@ -22,6 +22,8 @@ namespace diredge
     {
 		std::vector<glm::vec3> position;
 		std::vector<glm::vec3> normal;
+		std::vector<glm::vec3> faceNormal;
+		std::vector<glm::vec3> tempNormals;
 
         std::vector<uint32_t> faceVertices;
         std::vector<uint32_t> otherHalf;

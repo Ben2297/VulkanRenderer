@@ -44,13 +44,8 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
-	float shadow = mix(0.4f, 1.0f, currLayer);
-
 	vec4 furData = texture(texSampler, fragTexCoord);
 	vec4 furColor = {0.14f, 0.65f, 0.17f, 1.0f};
-	furColor *= shadow;
 	
-	furColor.a = furData.r;
-	
-	outColor = furColor;
+	outColor = vec4(furColor);
 }

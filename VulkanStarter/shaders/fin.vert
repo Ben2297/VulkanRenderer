@@ -46,10 +46,10 @@ void main() {
 	float maxHairLength = 2.0f;
 	vec3 pos = inPosition + inNormal * maxHairLength * constants.currentLayer;
 
-    fragPos = vec3(ubo.model * vec4(pos, 1.0));
+    fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
 	fragColor = inColor;
-	fragTexCoord = inTexCoord * 6.0;
+	fragTexCoord = inTexCoord;
 
 	fragEyeVector = vec3(40.0f, 10.0f, 10.0f);
 

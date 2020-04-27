@@ -212,7 +212,9 @@ private:
 	VkDeviceMemory vertexBufferMemory;
 	VkDeviceMemory vertexQuadBufferMemory;
 	VkBuffer indexBuffer;
+	VkBuffer quadIndexBuffer;
 	VkDeviceMemory indexBufferMemory;
+	VkDeviceMemory quadIndexBufferMemory;
 
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -230,6 +232,8 @@ private:
 	std::vector<VkFence> inFlightFences;
 	std::vector<VkFence> imagesInFlight;
 	size_t currentFrame = 0; //counter for current frame
+
+	uint32_t triangleCount = 0;
 
 	bool framebufferResized = false;
 
@@ -359,6 +363,9 @@ private:
 
 		vkDestroyBuffer(device, indexBuffer, nullptr);
 		vkFreeMemory(device, indexBufferMemory, nullptr);
+
+		vkDestroyBuffer(device, quadIndexBuffer, nullptr);
+		vkFreeMemory(device, quadIndexBufferMemory, nullptr);
 
 		vkDestroyBuffer(device, vertexBuffer, nullptr);
 		vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -760,7 +767,7 @@ private:
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {}; //struct for input assembly information
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		VkViewport viewport = {}; //struct containing information about the viewport
@@ -800,7 +807,7 @@ private:
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_FALSE;
 		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
@@ -855,7 +862,7 @@ private:
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.layout = pipelineLayout;
 		pipelineInfo.renderPass = renderPass;
-		pipelineInfo.subpass = 1;
+		pipelineInfo.subpass = 2;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &finPipeline) != VK_SUCCESS) {
@@ -1437,11 +1444,10 @@ private:
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
 					vertices.push_back(vertex);
-					quadVertices.push_back(vertex);
 				}
 
 				indices.push_back(uniqueVertices[vertex]);
-				quadIndices.push_back(uniqueVertices[vertex]);
+				triangleCount += 1;
 			}
 		}
 		std::vector<glm::vec3> positions;
@@ -1458,37 +1464,85 @@ private:
 
 		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
 
-		faceNormals = mesh.normal;
+		faceNormals = mesh.faceNormal;
 		glm::vec3 eyeVec = { 40.0, 10.0, 10.0 };
+		eyeVec = glm::normalize(eyeVec);
 
-		long count = 0;
-		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++)
+		uniqueVertices.clear();
+
+		bool draw = true;
+
+		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
-			glm::vec3 faceNormA = mesh.normal[currentEdge / 3];
-			glm::vec3 faceNormB = mesh.normal[mesh.otherHalf[currentEdge] / 3];
+			glm::vec3 faceNormA = mesh.faceNormal[currentEdge / 3];
+			glm::vec3 faceNormB = mesh.faceNormal[mesh.otherHalf[currentEdge] / 3];
 
-			float tempA = glm::dot(eyeVec, faceNormA);
-			float tempB = glm::dot(eyeVec, faceNormB);
+			float tempA = glm::dot(faceNormA, eyeVec);
+			float tempB = glm::dot(faceNormB, eyeVec);
 
-			bool test = ((tempA >= 0 && tempB >= 0) || (tempA < 0 && tempB < 0));
+			bool test = (tempA * tempB) < 0;
 			
-			if (!test)
+			if (test && draw)
 			{
-				count += 1; 
+				draw = false;
+				/*glm::vec3 vertA = { mesh.position[mesh.faceVertices[currentEdge]] };
+				glm::vec3 vertB = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
+				glm::vec3 vertC = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]]};
+				glm::vec3 vertD = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[currentEdge]] };*/
+
+				glm::vec3 vertA = { 4.0, 0.0, -20.0 };
+				glm::vec3 vertB = { 0.0, 4.0, -20.0 };
+				glm::vec3 vertC = { 0.0, 0.0, -20.0 };
+				glm::vec3 vertD = { 4.0, 4.0, -20.0 };
+
+				Vertex vertex = {};
+
+				vertex.pos = vertA;
+				vertex.color = { 1.0f, 0.0f, 0.0f };
+				vertex.texCoord = { 0.0 , 1.0 };
+				vertex.normal = eyeVec;
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
+
+				vertex.pos = vertB;
+				vertex.color = { 1.0f, 0.0f, 0.0f };
+				vertex.texCoord = { 0.0 , 0.0 };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
+
+				vertex.pos = vertC;
+				vertex.color = { 0.0f, 1.0f, 0.0f };
+				vertex.texCoord = { 1.0 , 1.0 };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
+
+				vertex.pos = vertD;
+				vertex.color = { 0.0f, 0.0f, 1.0f };
+				vertex.texCoord = { 1.0 , 0.0 };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
 			}
-			
 		}
-
-		std::cout << "Number of silhouette edges: " << count << std::endl;
-
-		/*glm::vec3 vertex1 = { 4.0, 0.0, 0.0 };
-		glm::vec3 vertex2 = { 0.0, 0.0, 0.0 };
-		glm::vec3 vertex3 = { 0.0, 4.0, 0.0 };
-		glm::vec3 vertex4 = { 4.0, 4.0, 0.0 };
-
-		quadIndices = { 0, 1, 2, 3 };*/
-
-
 	}
 
 	void createVertexBuffer() {
@@ -1541,6 +1595,21 @@ private:
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
 		copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+		bufferSize = sizeof(quadIndices[0]) * quadIndices.size();
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, indices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemory);
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffer, quadIndexBufferMemory);
+
+		copyBuffer(stagingBuffer, quadIndexBuffer, bufferSize);
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -1791,18 +1860,19 @@ private:
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-			VkBuffer vertexBuffers[] = { vertexBuffer, vertexQuadBuffer };
-			VkDeviceSize offsets[] = { 0, 1 };
+			VkBuffer vertexBuffers[] = { vertexBuffer };
+			VkDeviceSize offsets[] = { 0 };
+
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
-
+			
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
@@ -1826,15 +1896,17 @@ private:
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
+			VkBuffer quadVertexBuffers[] = { vertexQuadBuffer };
+
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 1, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuffers, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -1873,7 +1945,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(50.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.view = glm::lookAt(glm::vec3(40.0f, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
