@@ -40,7 +40,7 @@ layout(location = 10) out float fragRenderTex;
 layout(location = 11) out float currLayer;
 
 void main() {
-	vec3 gravity = {0.0f, 0.0f, -1.0f};
+	vec3 gravity = {0.0f, -1.0f, 0.0f};
 	gravity = vec3(vec4(gravity, 1.0) * ubo.model);
 	float displacementFactor = pow(constants.currentLayer, 2);
 	float maxHairLength = 2.0f;

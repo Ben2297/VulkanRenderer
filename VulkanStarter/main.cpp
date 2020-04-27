@@ -767,13 +767,14 @@ private:
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {}; //struct for input assembly information
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		VkViewport viewport = {}; //struct containing information about the viewport
 		viewport.x = 0.0f; //sets the x position that the viewport starts from
 		viewport.y = 0.0f; //sets the y position that the viewport starts from
 		viewport.width = (float)swapChainExtent.width;
+		viewport.height = (float)swapChainExtent.height;
 		viewport.height = (float)swapChainExtent.height;
 		viewport.minDepth = 0.0f; //sets the minimum depth of the viewport
 		viewport.maxDepth = 1.0f; //sets the maximum depth of the viewport
@@ -1482,20 +1483,23 @@ private:
 
 			bool test = (tempA * tempB) < 0;
 			
-			if (test && count < 10)
+			if (test && count < 1)
 			{
 				count += 1;
 
-				glm::vec3 vertA = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
-				glm::vec3 vertB = { mesh.position[mesh.faceVertices[currentEdge]] };
-				glm::vec3 vertC = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
-				glm::vec3 vertD = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
+				glm::vec3 vertA = { mesh.position[mesh.faceVertices[currentEdge]] };
+				glm::vec3 vertB = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
+				glm::vec3 vertC = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
+				glm::vec3 vertD = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
+
+				std::cout << vertB.x << ", " << vertB.y << ", " << vertB.z << std::endl;
+				std::cout << vertC.x << ", " << vertC.y << ", " << vertC.z << std::endl;
 
 				Vertex vertex = {};
 
 				vertex.pos = vertA;
 				vertex.color = { 1.0f, 1.0f, 1.0f };
-				vertex.texCoord = { 0.0 , 1.0 };
+				vertex.texCoord = { 0.0 , 0.0 };
 				vertex.normal = eyeVec;
 
 				if (uniqueVertices.count(vertex) == 0) {
@@ -1506,7 +1510,6 @@ private:
 				quadIndices.push_back(uniqueVertices[vertex]);
 
 				vertex.pos = vertB;
-				vertex.texCoord = { 0.0 , 0.0 };
 
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
@@ -1516,27 +1519,6 @@ private:
 				quadIndices.push_back(uniqueVertices[vertex]);
 
 				vertex.pos = vertC;
-				vertex.texCoord = { 1.0 , 1.0 };
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
-				}
-
-				quadIndices.push_back(uniqueVertices[vertex]);
-
-				vertex.pos = vertB;
-				vertex.texCoord = { 0.0 , 0.0 };
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-					quadVertices.push_back(vertex);
-				}
-
-				quadIndices.push_back(uniqueVertices[vertex]);
-
-				vertex.pos = vertC;
-				vertex.texCoord = { 1.0 , 1.0 };
 
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
@@ -1546,7 +1528,15 @@ private:
 				quadIndices.push_back(uniqueVertices[vertex]);
 
 				vertex.pos = vertD;
-				vertex.texCoord = { 1.0 , 0.0 };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+					quadVertices.push_back(vertex);
+				}
+
+				quadIndices.push_back(uniqueVertices[vertex]);
+
+				vertex.pos = vertA;
 
 				if (uniqueVertices.count(vertex) == 0) {
 					uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
@@ -1882,7 +1872,7 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 			
@@ -1902,7 +1892,7 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
@@ -1958,8 +1948,8 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(50.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(40.0f, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(50.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(40.0f, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
