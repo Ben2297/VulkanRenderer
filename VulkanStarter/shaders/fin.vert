@@ -40,18 +40,12 @@ layout(location = 10) out float fragRenderTex;
 layout(location = 11) out float currLayer;
 
 void main() {
-	vec3 gravity = {0.0f, 0.0f, -1.0f};
-	gravity = vec3(vec4(gravity, 1.0) * ubo.model);
-	float displacementFactor = pow(constants.currentLayer, 2);
-	float maxHairLength = 2.0f;
-	vec3 pos = inPosition + inNormal * maxHairLength * constants.currentLayer;
-
     fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
 	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
 
-	fragEyeVector = vec3(40.0f, 10.0f, 10.0f);
+	fragEyeVector = vec3(30.0f, 0.0f, 30.0f);
 
 	fragLightVector = lighting.lightPosition;
 	fragSpecularLighting = lighting.lightSpecular;

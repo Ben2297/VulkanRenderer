@@ -233,8 +233,6 @@ private:
 	std::vector<VkFence> imagesInFlight;
 	size_t currentFrame = 0; //counter for current frame
 
-	uint32_t triangleCount = 0;
-
 	bool framebufferResized = false;
 
 	bool renderTexture = true;
@@ -767,7 +765,7 @@ private:
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {}; //struct for input assembly information
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		VkViewport viewport = {}; //struct containing information about the viewport
@@ -794,7 +792,7 @@ private:
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -1074,7 +1072,7 @@ private:
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -1448,7 +1446,6 @@ private:
 				}
 
 				indices.push_back(uniqueVertices[vertex]);
-				triangleCount += 1;
 			}
 		}
 		std::vector<glm::vec3> positions;
@@ -1465,13 +1462,32 @@ private:
 
 		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
 
+		std::cout << indices.size() << " : " << mesh.faceVertices.size() << std::endl;
+
 		faceNormals = mesh.faceNormal;
-		glm::vec3 eyeVec = { 40.0, 10.0, 10.0 };
+		glm::vec3 eyeVec = { 30.0, 0.0, 30.0 };
 		eyeVec = glm::normalize(eyeVec);
 
 		uniqueVertices.clear();
 
 		long count = 0;
+
+		for (long i = 0; i < mesh.faceVertices.size(); i++)
+		{
+			Vertex vertex = {};
+
+			vertex.pos = mesh.position[mesh.faceVertices[i]];
+			vertex.color = { 1.0f, 1.0f, 1.0f };
+			vertex.texCoord = vertices[indices[i]].normal;
+			vertex.normal = mesh.normal[mesh.faceVertices[i]];
+
+			if (uniqueVertices.count(vertex) == 0) {
+				uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
+				quadVertices.push_back(vertex);
+			}
+
+			quadIndices.push_back(uniqueVertices[vertex]);
+		}
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
@@ -1483,17 +1499,14 @@ private:
 
 			bool test = (tempA * tempB) < 0;
 			
-			if (test && count < 1)
+			/*if (test && count < 20)
 			{
 				count += 1;
 
-				glm::vec3 vertA = { mesh.position[mesh.faceVertices[currentEdge]] };
-				glm::vec3 vertB = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
-				glm::vec3 vertC = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
-				glm::vec3 vertD = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
-
-				std::cout << vertB.x << ", " << vertB.y << ", " << vertB.z << std::endl;
-				std::cout << vertC.x << ", " << vertC.y << ", " << vertC.z << std::endl;
+				glm::vec3 vertA = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
+				glm::vec3 vertB = { mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]] };
+				glm::vec3 vertC = { mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]] };
+				glm::vec3 vertD = { mesh.position[mesh.faceVertices[currentEdge]] };
 
 				Vertex vertex = {};
 
@@ -1544,7 +1557,7 @@ private:
 				}
 
 				quadIndices.push_back(uniqueVertices[vertex]);
-			}
+			}*/
 		}
 	}
 
@@ -1567,20 +1580,23 @@ private:
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 
+		VkBuffer stagingBufferQuads;
+		VkDeviceMemory stagingBufferMemoryQuads;
+
 		bufferSize = sizeof(quadVertices[0]) * quadVertices.size();
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferQuads, stagingBufferMemoryQuads);
 
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		vkMapMemory(device, stagingBufferMemoryQuads, 0, bufferSize, 0, &data);
 		memcpy(data, quadVertices.data(), (size_t)bufferSize);
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(device, stagingBufferMemoryQuads);
 
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexQuadBuffer, vertexQuadBufferMemory);
 
-		copyBuffer(stagingBuffer, vertexQuadBuffer, bufferSize);
+		copyBuffer(stagingBufferQuads, vertexQuadBuffer, bufferSize);
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
+		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
 	}
 
 	void createIndexBuffer() {
@@ -1604,18 +1620,21 @@ private:
 
 		bufferSize = sizeof(quadIndices[0]) * quadIndices.size();
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		VkBuffer stagingBufferQuads;
+		VkDeviceMemory stagingBufferMemoryQuads;
 
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, indices.data(), (size_t)bufferSize);
-		vkUnmapMemory(device, stagingBufferMemory);
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferQuads, stagingBufferMemoryQuads);
+
+		vkMapMemory(device, stagingBufferMemoryQuads, 0, bufferSize, 0, &data);
+		memcpy(data, quadIndices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemoryQuads);
 
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffer, quadIndexBufferMemory);
 
-		copyBuffer(stagingBuffer, quadIndexBuffer, bufferSize);
+		copyBuffer(stagingBufferQuads, quadIndexBuffer, bufferSize);
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
+		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
 	}
 
 	void createUniformBuffers() {
@@ -1872,7 +1891,7 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 			
@@ -1892,16 +1911,16 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
-			VkBuffer quadVertexBuffers[] = { vertexQuadBuffer };
-
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
+
+			VkBuffer quadVertexBuffers[] = { vertexQuadBuffer };
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuffers, offsets);
 
@@ -1948,7 +1967,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(50.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(30.0f, 0.0f, 30.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;

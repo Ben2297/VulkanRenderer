@@ -45,7 +45,7 @@ void main() {
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
 	vec4 furData = texture(texSampler, fragTexCoord);
-	vec4 furColor = {0.14f, 0.65f, 0.17f, 1.0f};
+	vec4 furColor = {1.0f, 0.0f, 0.0f, 1.0f};
 	
 	outColor = vec4(furColor);
 }
