@@ -1527,9 +1527,9 @@ private:
 				vertexC.texCoord = { 0.0 , 0.0 };
 				vertexC.normal = eyeVec;
 
-				vertexD.pos = {0.0, 0.0, 0.0};
+				vertexD.pos = (mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]]);
 				vertexD.color = { 1.0f, 1.0f, 1.0f };
-				vertexD.texCoord = { 0.0 , 1.0 };
+				vertexD.texCoord = { 1.0 , 0.0 };
 				vertexD.normal = eyeVec;
 
 				if (uniqueVertices.count(vertexA) == 0) {
@@ -1553,12 +1553,16 @@ private:
 
 				quadIndices.push_back(uniqueVertices[vertexC]);
 
-				/*if (uniqueVertices.count(vertexD) == 0) {
+				quadIndices.push_back(uniqueVertices[vertexB]);
+
+				if (uniqueVertices.count(vertexD) == 0) {
 					uniqueVertices[vertexD] = static_cast<uint32_t>(quadVertices.size());
 					quadVertices.push_back(vertexD);
 				}
 
-				quadIndices.push_back(uniqueVertices[vertexD]);*/
+				quadIndices.push_back(uniqueVertices[vertexD]);
+
+				quadIndices.push_back(uniqueVertices[vertexC]);
 			}
 		}
 	}
