@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(binding = 2) uniform sampler2D texSampler;
+layout(binding = 2) uniform sampler2D texSampler[2];
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -19,7 +19,7 @@ layout(location = 11) in float currLayer;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	vec3 textureColor = vec3(texture(texSampler, fragTexCoord));
+	vec3 textureColor = vec3(texture(texSampler[1], fragTexCoord));
 
 	if (fragRenderTex == 0.0f) {
 		textureColor = vec3(1.0f, 1.0f, 1.0f);
@@ -44,8 +44,10 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
-	vec4 furData = texture(texSampler, fragTexCoord);
-	vec4 furColor = {1.0f, 0.0f, 0.0f, 1.0f};
+	vec4 furData = texture(texSampler[1], fragTexCoord);
+	vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
+
+	furColor.a = furData.a;
 	
 	outColor = vec4(furColor);
 }
