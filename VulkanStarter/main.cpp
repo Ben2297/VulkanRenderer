@@ -865,7 +865,7 @@ private:
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.layout = pipelineLayout;
 		pipelineInfo.renderPass = renderPass;
-		pipelineInfo.subpass = 2;
+		pipelineInfo.subpass = 1;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &finPipeline) != VK_SUCCESS) {
@@ -1005,7 +1005,7 @@ private:
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.layout = pipelineLayout;
 		pipelineInfo.renderPass = renderPass;
-		pipelineInfo.subpass = 1;
+		pipelineInfo.subpass = 2;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &shellPipeline) != VK_SUCCESS) {
@@ -1496,22 +1496,6 @@ private:
 
 		long count = 0;
 
-		/*for (long i = 0; i < mesh.faceVertices.size(); i++)
-		{
-			Vertex vertex = {};
-
-			vertex.color = { 1.0f, 1.0f, 1.0f };
-			vertex.texCoord = vertices[indices[i]].texCoord;
-			vertex.normal = mesh.normal[mesh.faceVertices[i]];
-
-			if (uniqueVertices.count(vertex) == 0) {
-				uniqueVertices[vertex] = static_cast<uint32_t>(quadVertices.size());
-				quadVertices.push_back(vertex);
-			}
-
-			quadIndices.push_back(uniqueVertices[vertex]);
-		}*/
-
 		std::cout << "faceNormals size: " << mesh.faceNormal.size() << std::endl;
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
@@ -1523,9 +1507,6 @@ private:
 
 			glm::vec3 faceNormA = mesh.faceNormal[currentEdge / 3];
 			glm::vec3 faceNormB = mesh.faceNormal[mesh.otherHalf[currentEdge] / 3];
-
-			//std::cout << faceNormA.x << ", " << faceNormA.y << ", " << faceNormA.z << std::endl;
-			//std::cout << faceNormB.x << ", " << faceNormB.y << ", " << faceNormB.z << std::endl;
 
 			float tempA = glm::dot(eyeVec, faceNormA);
 			float tempB = glm::dot(eyeVec, faceNormB);
@@ -1551,12 +1532,12 @@ private:
 				vertexB.texCoord = { 1.0 , 1.0 };
 				vertexB.normal = eyeVec;
 
-				vertexC.pos = (mesh.position[mesh.faceVertices[currentEdge]] + mesh.normal[mesh.faceVertices[currentEdge]]);
+				vertexC.pos = (mesh.position[mesh.faceVertices[currentEdge]] + (mesh.normal[mesh.faceVertices[currentEdge]]));
 				vertexC.color = { 1.0f, 1.0f, 1.0f };
 				vertexC.texCoord = { 0.0 , 0.0 };
 				vertexC.normal = eyeVec;
 
-				vertexD.pos = (mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]]);
+				vertexD.pos = (mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + (mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]]));
 				vertexD.color = { 1.0f, 1.0f, 1.0f };
 				vertexD.texCoord = { 1.0 , 0.0 };
 				vertexD.normal = eyeVec;
@@ -1935,6 +1916,20 @@ private:
 			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
+
+			VkBuffer quadVertexBuffers[] = { vertexQuadBuffer };
+
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuffers, offsets);
+
+			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
+
+			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 			
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
 
@@ -1952,24 +1947,10 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
-
-			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
-
-			VkBuffer quadVertexBuffers[] = { vertexQuadBuffer };
-
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuffers, offsets);
-
-			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 

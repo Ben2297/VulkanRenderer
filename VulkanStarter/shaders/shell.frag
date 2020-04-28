@@ -50,9 +50,9 @@ void main() {
 	vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
 	furColor *= shadow;
 	
-	//float furVisibility = (currLayer > furData.r) ? 0.0 : furData.a;
-	//furColor.a = furVisibility;
-	furColor.a = furData.r;
+	float furVisibility = (currLayer > furData.r) ? 0.0 : furData.a;
+	furColor.a = (currLayer == 0) ? 1 : furVisibility;
+	//furColor.a = furData.r;
 	
 	outColor = furColor;
 }
