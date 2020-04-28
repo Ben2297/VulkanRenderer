@@ -33,7 +33,7 @@
 const int WIDTH = 1000; //constant value for width of window
 const int HEIGHT = 800; //constant value for height of window
 
-const std::string MODEL_PATH = "models/sphere.obj";
+const std::string MODEL_PATH = "models/bunny.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
 const std::string FIN_TEXTURE_PATH = "textures/Fin.png";
 
@@ -210,7 +210,6 @@ private:
 	std::vector<Vertex> quadVertices;
 	std::vector<uint32_t> indices;
 	std::vector<uint32_t> quadIndices;
-	std::vector<glm::vec3> faceNormals;
 	VkBuffer vertexBuffer;
 	VkBuffer vertexQuadBuffer;
 	VkDeviceMemory vertexBufferMemory;
@@ -1434,50 +1433,8 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	void loadModel() {
-		tinyobj::attrib_t attrib;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-		std::string warn, err;
+	void createSilhouetteVertices() {
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
-			throw std::runtime_error(warn + err);
-		}
-
-		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-
-		for (const auto& shape : shapes) {
-			for (const auto& index : shape.mesh.indices) {
-				Vertex vertex = {};
-
-				vertex.pos = {
-					attrib.vertices[3 * index.vertex_index + 0],
-					attrib.vertices[3 * index.vertex_index + 1],
-					attrib.vertices[3 * index.vertex_index + 2]
-				};
-				
-				vertex.color = { 1.0f, 1.0f, 1.0f };
-
-				vertex.texCoord = {
-					attrib.texcoords[2 * index.texcoord_index + 0],
-					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-				};
-
-				vertex.normal = { 
-					attrib.normals[3 * index.normal_index + 0],
-					attrib.normals[3 * index.normal_index + 1],
-					attrib.normals[3 * index.normal_index + 2]
-				};
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-					vertices.push_back(vertex);
-				}
-
-				indices.push_back(uniqueVertices[vertex]);
-
-			}
-		}
 		std::vector<glm::vec3> positions;
 		for (long i = 0; i < vertices.size(); i++)
 		{
@@ -1491,12 +1448,10 @@ private:
 		}
 
 		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
-		faceNormals = mesh.faceNormal;
-		uniqueVertices.clear();
+		quadVertices.clear();
+		quadIndices.clear();
 
-		long count = 0;
-
-		std::cout << "faceNormals size: " << mesh.faceNormal.size() << std::endl;
+		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
@@ -1515,8 +1470,6 @@ private:
 
 			if (test)
 			{
-				count += 1;
-
 				Vertex vertexA = {};
 				Vertex vertexB = {};
 				Vertex vertexC = {};
@@ -1575,6 +1528,54 @@ private:
 				quadIndices.push_back(uniqueVertices[vertexC]);
 			}
 		}
+	}
+
+	void loadModel() {
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string warn, err;
+
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+			throw std::runtime_error(warn + err);
+		}
+
+		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+
+		for (const auto& shape : shapes) {
+			for (const auto& index : shape.mesh.indices) {
+				Vertex vertex = {};
+
+				vertex.pos = {
+					attrib.vertices[3 * index.vertex_index + 0],
+					attrib.vertices[3 * index.vertex_index + 1],
+					attrib.vertices[3 * index.vertex_index + 2]
+				};
+
+				vertex.pos *= 200.0f;
+				
+				vertex.color = { 1.0f, 1.0f, 1.0f };
+
+				vertex.texCoord = {
+					attrib.texcoords[2 * index.texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+				};
+
+				vertex.normal = { 
+					attrib.normals[3 * index.normal_index + 0],
+					attrib.normals[3 * index.normal_index + 1],
+					attrib.normals[3 * index.normal_index + 2]
+				};
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+					vertices.push_back(vertex);
+				}
+
+				indices.push_back(uniqueVertices[vertex]);
+			}
+		}
+		createSilhouetteVertices();
 	}
 
 	void createVertexBuffer() {
@@ -1989,7 +1990,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
