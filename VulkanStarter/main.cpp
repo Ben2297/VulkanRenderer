@@ -33,7 +33,7 @@
 const int WIDTH = 1000; //constant value for width of window
 const int HEIGHT = 800; //constant value for height of window
 
-const std::string MODEL_PATH = "models/bunny.obj";
+const std::string MODEL_PATH = "models/sphere.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
 const std::string FIN_TEXTURE_PATH = "textures/Fin.png";
 
@@ -138,6 +138,8 @@ struct UniformBufferObject {
 	alignas(4) float renderTex;
 };
 
+
+
 struct LightingConstants {
 	alignas(16) glm::vec3 lightPosition;
 	alignas(16) glm::vec3 lightAmbient;
@@ -211,7 +213,7 @@ private:
 	std::vector<uint32_t> indices;
 	std::vector<uint32_t> quadIndices;
 	VkBuffer vertexBuffer;
-	VkBuffer vertexQuadBuffer;
+	VkBuffer quadVertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
 	VkDeviceMemory vertexQuadBufferMemory;
 	VkBuffer indexBuffer;
@@ -360,6 +362,9 @@ private:
 		vkDestroyImage(device, textureImage, nullptr);
 		vkFreeMemory(device, textureImageMemory, nullptr);
 
+		vkDestroyImage(device, textureImageFin, nullptr);
+		vkFreeMemory(device, textureImageFinMemory, nullptr);
+
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		vkDestroyBuffer(device, indexBuffer, nullptr);
@@ -371,7 +376,7 @@ private:
 		vkDestroyBuffer(device, vertexBuffer, nullptr);
 		vkFreeMemory(device, vertexBufferMemory, nullptr);
 
-		vkDestroyBuffer(device, vertexQuadBuffer, nullptr);
+		vkDestroyBuffer(device, quadVertexBuffer, nullptr);
 		vkFreeMemory(device, vertexQuadBufferMemory, nullptr);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -1552,7 +1557,7 @@ private:
 					attrib.vertices[3 * index.vertex_index + 2]
 				};
 
-				vertex.pos *= 200.0f;
+				//vertex.pos *= 200.0f;
 				
 				vertex.color = { 1.0f, 1.0f, 1.0f };
 
@@ -1608,9 +1613,9 @@ private:
 		memcpy(data, quadVertices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemoryQuads);
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexQuadBuffer, vertexQuadBufferMemory);
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadVertexBuffer, vertexQuadBufferMemory);
 
-		copyBuffer(stagingBufferQuads, vertexQuadBuffer, bufferSize);
+		copyBuffer(stagingBufferQuads, quadVertexBuffer, bufferSize);
 
 		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
 		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
@@ -1901,6 +1906,11 @@ private:
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 			renderPassInfo.pClearValues = clearValues.data();
 
+			createSilhouetteVertices();
+
+			vkCmdUpdateBuffer(commandBuffers[i], quadVertexBuffer, 0, sizeof(quadVertices), quadVertices.data());
+			vkCmdUpdateBuffer(commandBuffers[i], quadIndexBuffer, 0, sizeof(quadIndices), quadIndices.data());
+
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
@@ -1920,7 +1930,7 @@ private:
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
 
-			VkBuffer quadVertexBuffers[] = { vertexQuadBuffer };
+			VkBuffer quadVertexBuffers[] = { quadVertexBuffer };
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuffers, offsets);
 
@@ -1948,7 +1958,7 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
