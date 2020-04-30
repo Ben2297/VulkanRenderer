@@ -183,49 +183,6 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         // normalise the vertex normal
         mesh.faceNormal[vertex] = glm::normalize(mesh.faceNormal[vertex]);
     } // for each vertex
-
-
-	//calculate face normals here
-	for (long vertex = 0; vertex < (long)mesh.position.size(); vertex++)
-	{ // for each vertex
-		// start a counter for cycle length
-		long cycleLength = 0;
-
-		// loop control is the neighbouring edge
-		//long outEdge = mesh.firstDirectedEdge[vertex];
-
-		//// could happen in a malformed input
-		//if (outEdge == NO_SUCH_ELEMENT)
-		//{ // no first edge
-		//	printf("Error: Vertex %ld had not incident edges\n", vertex);
-		//} // no first edge
-
-		//// do loop to iterate correctly
-		//do
-		//{ // do loop
-		//	// while we are at it, we can set the normal
-		//	long face = outEdge / 3;
-		//	glm::vec3 *v0 = &(mesh.position[mesh.faceVertices[3 * face]]);
-		//	glm::vec3 *v1 = &(mesh.position[mesh.faceVertices[3 * face + 1]]);
-		//	glm::vec3 *v2 = &(mesh.position[mesh.faceVertices[3 * face + 2]]);
-		//	// now compute the normal vector
-		//	glm::vec3 uVec = *v2 - *v0;
-		//	glm::vec3 vVec = *v1 - *v0;
-		//	glm::vec3 normal = glm::cross(uVec, vVec);
-		//	//mesh.faceNormal[vertex] = mesh.faceNormal[vertex] + normal;
-
-		//	// flip to the other half
-		//	long edgeFlip = mesh.otherHalf[outEdge];
-		//	// take the next edge on its face
-		//	outEdge = NEXT_EDGE(edgeFlip);
-		//	// increment the cycle length
-		//	cycleLength++;
-
-		//} // do loop
-		//while (outEdge != mesh.firstDirectedEdge[vertex]);
-
-
-	}
 }
 
 std::vector<glm::vec3> diredge::makeSoup(diredgeMesh mesh)

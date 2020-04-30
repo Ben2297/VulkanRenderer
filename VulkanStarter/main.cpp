@@ -244,7 +244,9 @@ private:
 	bool renderTexture = true;
 	bool renderLighting = true;
 
-	glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));;
+	glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	diredge::diredgeMesh mesh;
 
 	void initWindow() {
 		glfwInit();
@@ -1448,29 +1450,29 @@ private:
 
 	void createSilhouetteVertices() {
 
-		std::vector<glm::vec3> positions;
-		for (long i = 0; i < vertices.size(); i++)
-		{
-			positions.push_back(glm::vec3(glm::vec4(vertices[i].pos, 1.0) * modelMatrix));
-			//positions.push_back(vertices[i].pos);
-		}
+		//std::vector<glm::vec3> positions;
+		//for (long i = 0; i < vertices.size(); i++)
+		//{
+		//	positions.push_back(glm::vec3(glm::vec4(vertices[i].pos, 1.0) * modelMatrix));
+		//	//positions.push_back(vertices[i].pos);
+		//}
 
-		std::vector<glm::vec3> normals;
-		for (long i = 0; i < vertices.size(); i++)
-		{
-			normals.push_back(vertices[i].normal);
-		}
+		//std::vector<glm::vec3> normals;
+		//for (long i = 0; i < vertices.size(); i++)
+		//{
+		//	normals.push_back(vertices[i].normal);
+		//}
 
-		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
-		quadVertices.clear();
-		quadIndices.clear();
+		//diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
+		//quadVertices.clear();
+		//quadIndices.clear();
 
 		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
 			glm::vec3 vecA = { 30.0, 10.0, 30.0 };
-			glm::vec3 vecB = mesh.position[mesh.faceVertices[currentEdge]];
+			glm::vec3 vecB = glm::vec3(glm::vec4(mesh.position[mesh.faceVertices[currentEdge]], 1.0) * modelMatrix);
 			glm::vec3 eyeVec = (vecA - vecB);
 			eyeVec = glm::normalize(eyeVec);
 
@@ -1589,6 +1591,22 @@ private:
 				indices.push_back(uniqueVertices[vertex]);
 			}
 		}
+		std::vector<glm::vec3> positions;
+		for (long i = 0; i < vertices.size(); i++)
+		{
+			positions.push_back(vertices[i].pos);
+		}
+
+		std::vector<glm::vec3> normals;
+		for (long i = 0; i < vertices.size(); i++)
+		{
+			normals.push_back(vertices[i].normal);
+		}
+
+		mesh = diredge::createMesh(positions, normals, indices);
+		quadVertices.clear();
+		quadIndices.clear();
+
 		createSilhouetteVertices();
 	}
 
@@ -2075,7 +2093,6 @@ private:
 		if (!renderTexture) {
 			ubo.renderTex = 0.0f;
 		}
-		ubo.defaultModel = glm::mat4(1.0f);
 
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);

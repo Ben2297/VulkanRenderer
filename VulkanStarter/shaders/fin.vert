@@ -6,7 +6,6 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
 	float renderTex;
-	mat4 defaultModel;
 } ubo;
 
 layout(binding = 1) uniform LightingConstants {
@@ -41,8 +40,8 @@ layout(location = 10) out float fragRenderTex;
 layout(location = 11) out float currLayer;
 
 void main() {
-    fragPos = vec3(ubo.defaultModel * vec4(inPosition, 1.0));
-	fragNormal = mat3(transpose(inverse(ubo.defaultModel))) * inNormal;
+    fragPos = inPosition;
+	fragNormal = inNormal;
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
 
