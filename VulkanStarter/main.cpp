@@ -244,9 +244,6 @@ private:
 	bool renderTexture = true;
 	bool renderLighting = true;
 
-	long funCount = 0;
-
-	diredge::diredgeMesh mesh;
 	glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));;
 
 	void initWindow() {
@@ -363,11 +360,12 @@ private:
 		cleanupSwapChain();
 
 		vkDestroySampler(device, textureSampler, nullptr);
+		
 		vkDestroyImageView(device, textureImageView, nullptr);
-
 		vkDestroyImage(device, textureImage, nullptr);
 		vkFreeMemory(device, textureImageMemory, nullptr);
 
+		vkDestroyImageView(device, textureImageFinView, nullptr);
 		vkDestroyImage(device, textureImageFin, nullptr);
 		vkFreeMemory(device, textureImageFinMemory, nullptr);
 
@@ -1463,7 +1461,7 @@ private:
 			normals.push_back(vertices[i].normal);
 		}
 
-		mesh = diredge::createMesh(positions, normals, indices);
+		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
 		quadVertices.clear();
 		quadIndices.clear();
 
@@ -2068,7 +2066,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
@@ -2120,9 +2118,9 @@ private:
 		}
 
 		updateUniformBuffer(imageIndex);
-		//createSilhouetteVertices();
-		//updateSilhouetteVertexBuffers(imageIndex);
-		//updateSilhouetteIndexBuffers(imageIndex);
+		createSilhouetteVertices();
+		updateSilhouetteVertexBuffers(imageIndex);
+		updateSilhouetteIndexBuffers(imageIndex);
 		createCommandBuffers();
 
 		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
