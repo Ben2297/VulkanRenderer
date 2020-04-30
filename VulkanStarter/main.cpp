@@ -136,6 +136,7 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 	alignas(4) float renderTex;
+	alignas(16) glm::mat4 defaultModel;
 };
 
 
@@ -212,14 +213,14 @@ private:
 	std::vector<Vertex> quadVertices;
 	std::vector<uint32_t> indices;
 	std::vector<uint32_t> quadIndices;
-	VkBuffer vertexBuffer;
-	VkBuffer quadVertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-	VkDeviceMemory vertexQuadBufferMemory;
-	VkBuffer indexBuffer;
-	VkBuffer quadIndexBuffer;
-	VkDeviceMemory indexBufferMemory;
-	VkDeviceMemory quadIndexBufferMemory;
+	std::vector<VkBuffer> vertexBuffers;
+	std::vector<VkBuffer> quadVertexBuffers;
+	std::vector<VkDeviceMemory> vertexBuffersMemory;
+	std::vector<VkDeviceMemory> quadVertexBuffersMemory;
+	std::vector<VkBuffer> indexBuffers;
+	std::vector<VkBuffer> quadIndexBuffers;
+	std::vector<VkDeviceMemory> indexBuffersMemory;
+	std::vector<VkDeviceMemory> quadIndexBuffersMemory;
 
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -242,6 +243,11 @@ private:
 
 	bool renderTexture = true;
 	bool renderLighting = true;
+
+	long funCount = 0;
+
+	diredge::diredgeMesh mesh;
+	glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));;
 
 	void initWindow() {
 		glfwInit();
@@ -302,8 +308,8 @@ private:
 		createTextureImageView();
 		createTextureSampler();
 		loadModel();
-		createVertexBuffer(); //creates the vertex buffer
-		createIndexBuffer(); //creates the index buffer
+		createVertexBuffers(); //creates the vertex buffer
+		createIndexBuffers(); //creates the index buffer
 		createUniformBuffers(); //creates the uniform buffers
 		createLightingBuffers();
 		createDescriptorPool(); //creates the descriptor pool
@@ -367,17 +373,20 @@ private:
 
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, indexBuffer, nullptr);
-		vkFreeMemory(device, indexBufferMemory, nullptr);
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			vkDestroyBuffer(device, indexBuffers[i], nullptr);
+			vkFreeMemory(device, indexBuffersMemory[i], nullptr);
 
-		vkDestroyBuffer(device, quadIndexBuffer, nullptr);
-		vkFreeMemory(device, quadIndexBufferMemory, nullptr);
+			vkDestroyBuffer(device, quadIndexBuffers[i], nullptr);
+			vkFreeMemory(device, quadIndexBuffersMemory[i], nullptr);
 
-		vkDestroyBuffer(device, vertexBuffer, nullptr);
-		vkFreeMemory(device, vertexBufferMemory, nullptr);
+			vkDestroyBuffer(device, vertexBuffers[i], nullptr);
+			vkFreeMemory(device, vertexBuffersMemory[i], nullptr);
 
-		vkDestroyBuffer(device, quadVertexBuffer, nullptr);
-		vkFreeMemory(device, vertexQuadBufferMemory, nullptr);
+			vkDestroyBuffer(device, quadVertexBuffers[i], nullptr);
+			vkFreeMemory(device, quadVertexBuffersMemory[i], nullptr);
+		}
+		
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -1190,6 +1199,7 @@ private:
 		VkCommandPoolCreateInfo poolInfo = {}; //struct for pool information
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+		//poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create command pool!");
@@ -1443,7 +1453,8 @@ private:
 		std::vector<glm::vec3> positions;
 		for (long i = 0; i < vertices.size(); i++)
 		{
-			positions.push_back(vertices[i].pos);
+			positions.push_back(glm::vec3(glm::vec4(vertices[i].pos, 1.0) * modelMatrix));
+			//positions.push_back(vertices[i].pos);
 		}
 
 		std::vector<glm::vec3> normals;
@@ -1452,7 +1463,7 @@ private:
 			normals.push_back(vertices[i].normal);
 		}
 
-		diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
+		mesh = diredge::createMesh(positions, normals, indices);
 		quadVertices.clear();
 		quadIndices.clear();
 
@@ -1583,8 +1594,11 @@ private:
 		createSilhouetteVertices();
 	}
 
-	void createVertexBuffer() {
+	void createVertexBuffers() {
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+		vertexBuffers.resize(swapChainImages.size());
+		vertexBuffersMemory.resize(swapChainImages.size());
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1595,12 +1609,19 @@ private:
 		memcpy(data, vertices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemory);
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffers[i], vertexBuffersMemory[i]);
 
-		copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+			copyBuffer(stagingBuffer, vertexBuffers[i], bufferSize);
+		}
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+		bufferSize = sizeof(quadVertices[0]) * quadVertices.size();
+
+		quadVertexBuffers.resize(swapChainImages.size());
+		quadVertexBuffersMemory.resize(swapChainImages.size());
 
 		VkBuffer stagingBufferQuads;
 		VkDeviceMemory stagingBufferMemoryQuads;
@@ -1613,16 +1634,42 @@ private:
 		memcpy(data, quadVertices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemoryQuads);
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadVertexBuffer, vertexQuadBufferMemory);
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadVertexBuffers[i], quadVertexBuffersMemory[i]);
 
-		copyBuffer(stagingBufferQuads, quadVertexBuffer, bufferSize);
+			copyBuffer(stagingBufferQuads, quadVertexBuffers[i], bufferSize);
+		}
 
 		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
 		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
 	}
 
-	void createIndexBuffer() {
+	void updateSilhouetteVertexBuffers(uint32_t imageIndex) {
+		VkDeviceSize bufferSize = sizeof(quadVertices[0]) * quadVertices.size();
+
+		VkBuffer stagingBufferQuads;
+		VkDeviceMemory stagingBufferMemoryQuads;
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferQuads, stagingBufferMemoryQuads);
+
+		void* data;
+		vkMapMemory(device, stagingBufferMemoryQuads, 0, bufferSize, 0, &data);
+		memcpy(data, quadVertices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemoryQuads);
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadVertexBuffers[imageIndex], quadVertexBuffersMemory[imageIndex]);
+
+		copyBuffer(stagingBufferQuads, quadVertexBuffers[imageIndex], bufferSize);
+
+		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
+		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
+	}
+
+	void createIndexBuffers() {
 		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+		indexBuffers.resize(swapChainImages.size());
+		indexBuffersMemory.resize(swapChainImages.size());
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1633,14 +1680,19 @@ private:
 		memcpy(data, indices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemory);
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers[i], indexBuffersMemory[i]);
 
-		copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+			copyBuffer(stagingBuffer, indexBuffers[i], bufferSize);
+		}
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 
 		bufferSize = sizeof(quadIndices[0]) * quadIndices.size();
+
+		quadIndexBuffers.resize(swapChainImages.size());
+		quadIndexBuffersMemory.resize(swapChainImages.size());
 
 		VkBuffer stagingBufferQuads;
 		VkDeviceMemory stagingBufferMemoryQuads;
@@ -1651,9 +1703,32 @@ private:
 		memcpy(data, quadIndices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemoryQuads);
 
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffer, quadIndexBufferMemory);
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffers[i], quadIndexBuffersMemory[i]);
 
-		copyBuffer(stagingBufferQuads, quadIndexBuffer, bufferSize);
+			copyBuffer(stagingBufferQuads, quadIndexBuffers[i], bufferSize);
+		}
+
+		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
+		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
+	}
+
+	void updateSilhouetteIndexBuffers(uint32_t imageIndex) {
+		VkDeviceSize bufferSize = sizeof(quadIndices[0]) * quadIndices.size();
+
+		VkBuffer stagingBufferQuads;
+		VkDeviceMemory stagingBufferMemoryQuads;
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferQuads, stagingBufferMemoryQuads);
+
+		void* data;
+		vkMapMemory(device, stagingBufferMemoryQuads, 0, bufferSize, 0, &data);
+		memcpy(data, quadIndices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemoryQuads);
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffers[imageIndex], quadIndexBuffersMemory[imageIndex]);
+
+		copyBuffer(stagingBufferQuads, quadIndexBuffers[imageIndex], bufferSize);
 
 		vkDestroyBuffer(device, stagingBufferQuads, nullptr);
 		vkFreeMemory(device, stagingBufferMemoryQuads, nullptr);
@@ -1713,8 +1788,6 @@ private:
 		if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate descriptor sets!");
 		}
-
-		std::cout << swapChainImages.size() << std::endl;
 
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			VkDescriptorBufferInfo bufferInfo = {};
@@ -1906,21 +1979,16 @@ private:
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 			renderPassInfo.pClearValues = clearValues.data();
 
-			createSilhouetteVertices();
-
-			vkCmdUpdateBuffer(commandBuffers[i], quadVertexBuffer, 0, sizeof(quadVertices), quadVertices.data());
-			vkCmdUpdateBuffer(commandBuffers[i], quadIndexBuffer, 0, sizeof(quadIndices), quadIndices.data());
-
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-			VkBuffer vertexBuffers[] = { vertexBuffer };
+			VkBuffer vertexBuff[] = { vertexBuffers[i] };
 			VkDeviceSize offsets[] = { 0 };
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
@@ -1930,11 +1998,11 @@ private:
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
 
-			VkBuffer quadVertexBuffers[] = { quadVertexBuffer };
+			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
@@ -1944,9 +2012,9 @@ private:
 			
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
@@ -2000,7 +2068,8 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
@@ -2008,6 +2077,7 @@ private:
 		if (!renderTexture) {
 			ubo.renderTex = 0.0f;
 		}
+		ubo.defaultModel = glm::mat4(1.0f);
 
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -2050,6 +2120,10 @@ private:
 		}
 
 		updateUniformBuffer(imageIndex);
+		//createSilhouetteVertices();
+		//updateSilhouetteVertexBuffers(imageIndex);
+		//updateSilhouetteIndexBuffers(imageIndex);
+		createCommandBuffers();
 
 		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
 			vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
