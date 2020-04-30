@@ -1449,30 +1449,20 @@ private:
 	}
 
 	void createSilhouetteVertices() {
-
-		//std::vector<glm::vec3> positions;
-		//for (long i = 0; i < vertices.size(); i++)
-		//{
-		//	positions.push_back(glm::vec3(glm::vec4(vertices[i].pos, 1.0) * modelMatrix));
-		//	//positions.push_back(vertices[i].pos);
-		//}
-
-		//std::vector<glm::vec3> normals;
-		//for (long i = 0; i < vertices.size(); i++)
-		//{
-		//	normals.push_back(vertices[i].normal);
-		//}
-
-		//diredge::diredgeMesh mesh = diredge::createMesh(positions, normals, indices);
-		//quadVertices.clear();
-		//quadIndices.clear();
-
 		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+		
+		for (long i = 0; i < mesh.position.size(); i++)
+		{
+			mesh.position[i] = glm::vec3(glm::vec4(mesh.position[i], 1.0) * modelMatrix);
+		}
+
+		quadVertices.clear();
+		quadIndices.clear();
 
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
 			glm::vec3 vecA = { 30.0, 10.0, 30.0 };
-			glm::vec3 vecB = glm::vec3(glm::vec4(mesh.position[mesh.faceVertices[currentEdge]], 1.0) * modelMatrix);
+			glm::vec3 vecB = mesh.position[mesh.faceVertices[currentEdge]];
 			glm::vec3 eyeVec = (vecA - vecB);
 			eyeVec = glm::normalize(eyeVec);
 
@@ -1604,8 +1594,6 @@ private:
 		}
 
 		mesh = diredge::createMesh(positions, normals, indices);
-		quadVertices.clear();
-		quadIndices.clear();
 
 		createSilhouetteVertices();
 	}
@@ -2042,7 +2030,7 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
