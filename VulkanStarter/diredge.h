@@ -20,9 +20,10 @@ namespace diredge
 {
     struct diredgeMesh
     {
-		std::vector<glm::vec3> position;
-		std::vector<glm::vec3> normal;
-		std::vector<glm::vec3> faceNormal;
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec3> defaultPositions;
+		std::vector<glm::vec3> normals;
+		std::vector<glm::vec3> faceNormals;
 		std::vector<glm::vec3> tempNormals;
 
         std::vector<uint32_t> faceVertices;
@@ -42,4 +43,7 @@ namespace diredge
     // Computes mesh.firstDirectedEdge and mesh.firstDirectedEdge, given mesh.position and mesh.normal and mesh.faceVertices
     void makeDirectedEdges(diredgeMesh&);
 
+	void makeFaceNormals(diredgeMesh&);
+
+	void restoreDefaultPositions(diredgeMesh&);
 }

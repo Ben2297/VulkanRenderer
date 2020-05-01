@@ -21,9 +21,11 @@ diredgeMesh diredge::createMesh(std::vector<glm::vec3> vertices, std::vector<glm
 	mesh.faceVertices.resize(raw_vertices.size(), -1);
 	makeFaceIndices(raw_vertices, mesh);
 
-	mesh.faceNormal.resize(raw_vertices.size() / 3, glm::vec3(0.0, 0.0, 0.0));
+
+
+	mesh.faceNormals.resize(raw_vertices.size() / 3, glm::vec3(0.0, 0.0, 0.0));
     mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
-    mesh.firstDirectedEdge.resize(mesh.position.size(), NO_SUCH_ELEMENT);
+    mesh.firstDirectedEdge.resize(mesh.positions.size(), NO_SUCH_ELEMENT);
     makeDirectedEdges(mesh);
 
     return mesh;
@@ -56,8 +58,9 @@ void diredge::makeFaceIndices(std::vector<glm::vec3> vertices, diredgeMesh &mesh
         // if it's the first time found
         if (writeID == mesh.faceVertices[vertex])
         { 
-            mesh.position.push_back(vertices[vertex]);
-			mesh.normal.push_back(mesh.tempNormals[vertex]);
+            mesh.positions.push_back(vertices[vertex]);
+			mesh.defaultPositions.push_back(vertices[vertex]);
+			mesh.normals.push_back(mesh.tempNormals[vertex]);
             writeID++;
         }
     }
@@ -66,7 +69,7 @@ void diredge::makeFaceIndices(std::vector<glm::vec3> vertices, diredgeMesh &mesh
 void diredge::makeDirectedEdges(diredgeMesh &mesh)
 {
     // we will also want a temporary variable for the degree of each vertex
-    std::vector<long> vertexDegree(mesh.position.size(), 0);
+    std::vector<long> vertexDegree(mesh.positions.size(), 0);
 
     // 2.	now loop through the directed edges
     for (long dirEdge = 0; dirEdge < (long) mesh.faceVertices.size(); dirEdge++)
@@ -135,7 +138,7 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
 
 	long facenormalsadded = 0;
     // 3.	now we assume that the data structure is correctly set, and test whether all neighbours are on a single cycle
-    for (long vertex = 0; vertex < (long) mesh.position.size(); vertex++)
+    for (long vertex = 0; vertex < (long) mesh.positions.size(); vertex++)
     { // for each vertex
         // start a counter for cycle length
         long cycleLength = 0;
@@ -154,14 +157,14 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         { // do loop
             // while we are at it, we can set the normal
             long face = outEdge / 3;
-			glm::vec3 *v0 = &(mesh.position[mesh.faceVertices[3*face]]);
-			glm::vec3 *v1 = &(mesh.position[mesh.faceVertices[3*face+1]]);
-			glm::vec3 *v2 = &(mesh.position[mesh.faceVertices[3*face+2]]);
+			glm::vec3 *v0 = &(mesh.positions[mesh.faceVertices[3*face]]);
+			glm::vec3 *v1 = &(mesh.positions[mesh.faceVertices[3*face+1]]);
+			glm::vec3 *v2 = &(mesh.positions[mesh.faceVertices[3*face+2]]);
             // now compute the normal vector
 			glm::vec3 uVec = *v2 - *v0;
 			glm::vec3 vVec = *v1 - *v0;
 			glm::vec3 normal = glm::cross(uVec, vVec);
-            mesh.faceNormal[face] = mesh.faceNormal[face] + normal;
+            mesh.faceNormals[face] = mesh.faceNormals[face] + normal;
 
             // flip to the other half
             long edgeFlip = mesh.otherHalf[outEdge];
@@ -181,8 +184,45 @@ void diredge::makeDirectedEdges(diredgeMesh &mesh)
         } // wrong cycle length
 
         // normalise the vertex normal
-        mesh.faceNormal[vertex] = glm::normalize(mesh.faceNormal[vertex]);
+        mesh.faceNormals[vertex] = glm::normalize(mesh.faceNormals[vertex]);
     } // for each vertex
+}
+
+void diredge::makeFaceNormals(diredgeMesh &mesh)
+{
+	for (long vertex = 0; vertex < (long)mesh.positions.size(); vertex++)
+	{ // for each vertex
+		long outEdge = mesh.firstDirectedEdge[vertex];
+
+		do
+		{ // do loop
+			// while we are at it, we can set the normal
+			long face = outEdge / 3;
+			glm::vec3 *v0 = &(mesh.positions[mesh.faceVertices[3 * face]]);
+			glm::vec3 *v1 = &(mesh.positions[mesh.faceVertices[3 * face + 1]]);
+			glm::vec3 *v2 = &(mesh.positions[mesh.faceVertices[3 * face + 2]]);
+			// now compute the normal vector
+			glm::vec3 uVec = *v2 - *v0;
+			glm::vec3 vVec = *v1 - *v0;
+			glm::vec3 normal = glm::cross(uVec, vVec);
+			mesh.faceNormals[face] = mesh.faceNormals[face] + normal;
+
+			// flip to the other half
+			long edgeFlip = mesh.otherHalf[outEdge];
+			// take the next edge on its face
+			outEdge = NEXT_EDGE(edgeFlip);
+			// increment the cycle length
+		} // do loop
+		while (outEdge != mesh.firstDirectedEdge[vertex]);
+	}
+}
+
+void diredge::restoreDefaultPositions(diredgeMesh &mesh)
+{
+	for (long i = 0; i < mesh.positions.size(); i++)
+	{
+		mesh.positions[i] = mesh.defaultPositions[i];
+	}
 }
 
 std::vector<glm::vec3> diredge::makeSoup(diredgeMesh mesh)
@@ -192,7 +232,7 @@ std::vector<glm::vec3> diredge::makeSoup(diredgeMesh mesh)
     {
         for (int i = 0 ; i < 3 ; i++)
         {
-			glm::vec3 position = mesh.position[mesh.faceVertices[3*face + i]];
+			glm::vec3 position = mesh.positions[mesh.faceVertices[3*face + i]];
             soup.push_back(position);
         }
     }

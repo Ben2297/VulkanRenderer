@@ -1451,10 +1451,12 @@ private:
 	void createSilhouetteVertices() {
 		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 		
-		for (long i = 0; i < mesh.position.size(); i++)
+		for (long i = 0; i < mesh.positions.size(); i++)
 		{
-			mesh.position[i] = glm::vec3(glm::vec4(mesh.position[i], 1.0) * modelMatrix);
+			mesh.positions[i] = glm::vec3(glm::vec4(mesh.positions[i], 1.0) * modelMatrix);
 		}
+
+		diredge::makeFaceNormals(mesh);
 
 		quadVertices.clear();
 		quadIndices.clear();
@@ -1462,12 +1464,12 @@ private:
 		for (long currentEdge = 0; currentEdge < (long)mesh.faceVertices.size(); currentEdge++) 
 		{
 			glm::vec3 vecA = { 30.0, 10.0, 30.0 };
-			glm::vec3 vecB = mesh.position[mesh.faceVertices[currentEdge]];
+			glm::vec3 vecB = mesh.positions[mesh.faceVertices[currentEdge]];
 			glm::vec3 eyeVec = (vecA - vecB);
 			eyeVec = glm::normalize(eyeVec);
 
-			glm::vec3 faceNormA = mesh.faceNormal[currentEdge / 3];
-			glm::vec3 faceNormB = mesh.faceNormal[mesh.otherHalf[currentEdge] / 3];
+			glm::vec3 faceNormA = mesh.faceNormals[currentEdge / 3];
+			glm::vec3 faceNormB = mesh.faceNormals[mesh.otherHalf[currentEdge] / 3];
 
 			float tempA = glm::dot(eyeVec, faceNormA);
 			float tempB = glm::dot(eyeVec, faceNormB);
@@ -1481,22 +1483,22 @@ private:
 				Vertex vertexC = {};
 				Vertex vertexD = {};
 
-				vertexA.pos = mesh.position[mesh.faceVertices[currentEdge]];
+				vertexA.pos = mesh.positions[mesh.faceVertices[currentEdge]];
 				vertexA.color = { 1.0f, 1.0f, 1.0f };
 				vertexA.texCoord = { 0.0 , 1.0 };
 				vertexA.normal = eyeVec;
 
-				vertexB.pos = mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]];
+				vertexB.pos = mesh.positions[mesh.faceVertices[NEXT_EDGE(currentEdge)]];
 				vertexB.color = { 1.0f, 1.0f, 1.0f };
 				vertexB.texCoord = { 1.0 , 1.0 };
 				vertexB.normal = eyeVec;
 
-				vertexC.pos = (mesh.position[mesh.faceVertices[currentEdge]] + (mesh.normal[mesh.faceVertices[currentEdge]]));
+				vertexC.pos = (mesh.positions[mesh.faceVertices[currentEdge]] + (mesh.normals[mesh.faceVertices[currentEdge]]));
 				vertexC.color = { 1.0f, 1.0f, 1.0f };
 				vertexC.texCoord = { 0.0 , 0.0 };
 				vertexC.normal = eyeVec;
 
-				vertexD.pos = (mesh.position[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + (mesh.normal[mesh.faceVertices[NEXT_EDGE(currentEdge)]]));
+				vertexD.pos = (mesh.positions[mesh.faceVertices[NEXT_EDGE(currentEdge)]] + (mesh.normals[mesh.faceVertices[NEXT_EDGE(currentEdge)]]));
 				vertexD.color = { 1.0f, 1.0f, 1.0f };
 				vertexD.texCoord = { 1.0 , 0.0 };
 				vertexD.normal = eyeVec;
@@ -1534,6 +1536,8 @@ private:
 				quadIndices.push_back(uniqueVertices[vertexC]);
 			}
 		}
+
+		diredge::restoreDefaultPositions(mesh);
 	}
 
 	void loadModel() {
@@ -1558,7 +1562,10 @@ private:
 					attrib.vertices[3 * index.vertex_index + 2]
 				};
 
-				//vertex.pos *= 200.0f;
+				if (MODEL_PATH == "models/bunny.obj")
+				{
+					vertex.pos *= 200.0f;
+				}
 				
 				vertex.color = { 1.0f, 1.0f, 1.0f };
 
@@ -2030,7 +2037,7 @@ private:
 
 			while (currentLayer <= maxLayer)
 			{
-				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
@@ -2072,8 +2079,8 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;

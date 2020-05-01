@@ -44,7 +44,8 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
 
-	vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
+	//vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
+	vec4 furColor = {0.0f, 0.0f, 0.0f, 1.0f};
 	
 	outColor = furColor;
 }
