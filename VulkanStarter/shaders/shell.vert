@@ -16,6 +16,12 @@ layout(binding = 1) uniform LightingConstants {
 	float lightSpecularExponent;
 } lighting;
 
+layout(binding = 3) uniform ShadowBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} shadow;
+
 layout(push_constant) uniform PushConstants
 {
     float currentLayer;

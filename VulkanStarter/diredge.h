@@ -22,6 +22,7 @@ namespace diredge
     {
 		std::vector<glm::vec3> positions;
 		std::vector<glm::vec3> defaultPositions;
+		std::vector<glm::vec3> deafultNormals;
 		std::vector<glm::vec3> normals;
 		std::vector<glm::vec3> faceNormals;
 		std::vector<glm::vec3> tempNormals;
@@ -45,5 +46,5 @@ namespace diredge
 
 	void makeFaceNormals(diredgeMesh&);
 
-	void restoreDefaultPositions(diredgeMesh&);
+	void restoreDefaults(diredgeMesh&);
 }

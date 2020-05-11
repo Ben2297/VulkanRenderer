@@ -35,7 +35,7 @@ const int HEIGHT = 800; //constant value for height of window
 
 const std::string MODEL_PATH = "models/sphere.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
-const std::string FIN_TEXTURE_PATH = "textures/Fin.png";
+const std::string FIN_TEXTURE_PATH = "textures/fin.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -139,7 +139,11 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 defaultModel;
 };
 
-
+struct ShadowBufferObject {
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
+};
 
 struct LightingConstants {
 	alignas(16) glm::vec3 lightPosition;
@@ -225,6 +229,9 @@ private:
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 
+	std::vector<VkBuffer> shadowUniformBuffers;
+	std::vector<VkDeviceMemory> shadowUniformBuffersMemory;
+
 	std::vector<VkBuffer> lightingBuffers;
 	std::vector<VkDeviceMemory> lightingBuffersMemory;
 
@@ -296,23 +303,23 @@ private:
 		createSwapChain(); //creates the swap chain
 		createImageViews(); //creates the image views
 		createRenderPass(); //creates the render pass
-		createDescriptorSetLayout();
+		createDescriptorSetLayout(); //creates the layout for the descriptor set
 		createGraphicsPipeline(); //creates the graphics pipeline
 		createShellPipeline(); //creates the shell pipeline
-		createFinPipeline();
+		createFinPipeline(); //creates the fin pipeline
 		createCommandPool(); //creates the command pool
-		createDepthResources();
+		createDepthResources(); //creates the depth resources
 		createFramebuffers(); //creates the frame buffers
-		createTextureImage();
-		createTextureImageView();
-		createTextureSampler();
-		loadModel();
+		createTextureImage(); //creates the texture image
+		createTextureImageView(); //creates the texture image view
+		createTextureSampler(); //creates the texture samplers
+		loadModel(); //loads the obj file
 		createVertexBuffers(); //creates the vertex buffer
 		createIndexBuffers(); //creates the index buffer
 		createUniformBuffers(); //creates the uniform buffers
-		createLightingBuffers();
+		createLightingBuffers(); //creates the lighting buffers
 		createDescriptorPool(); //creates the descriptor pool
-		createDescriptorSets();
+		createDescriptorSets(); //creates the descriptor sets
 		createCommandBuffers(); //creates the command buffers
 		createSyncObjects(); //creates the sync objects
 	}
@@ -351,6 +358,8 @@ private:
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+			vkDestroyBuffer(device, shadowUniformBuffers[i], nullptr);
+			vkFreeMemory(device, shadowUniformBuffersMemory[i], nullptr);
 			vkDestroyBuffer(device, lightingBuffers[i], nullptr);
 			vkFreeMemory(device, lightingBuffersMemory[i], nullptr);
 		}
@@ -737,7 +746,14 @@ private:
 		samplerLayoutBinding.pImmutableSamplers = nullptr;
 		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, lightingLayoutBinding, samplerLayoutBinding };
+		VkDescriptorSetLayoutBinding shadowLayoutBinding = {};
+		shadowLayoutBinding.binding = 3;
+		shadowLayoutBinding.descriptorCount = 1;
+		shadowLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		shadowLayoutBinding.pImmutableSamplers = nullptr;
+		shadowLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, lightingLayoutBinding, samplerLayoutBinding, shadowLayoutBinding };
 		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -1448,15 +1464,17 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
+	//checks which edges are silhouette edges and creates quads based on these vertices
 	void createSilhouetteVertices() {
 		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 		
-		for (long i = 0; i < mesh.positions.size(); i++)
+		/*for (long i = 0; i < mesh.positions.size(); i++)
 		{
 			mesh.positions[i] = glm::vec3(glm::vec4(mesh.positions[i], 1.0) * modelMatrix);
+			mesh.normals[i] = glm::vec3(glm::mat3(glm::transpose(glm::inverse(modelMatrix))) * mesh.normals[i]);
 		}
 
-		diredge::makeFaceNormals(mesh);
+		diredge::makeFaceNormals(mesh);*/
 
 		quadVertices.clear();
 		quadIndices.clear();
@@ -1536,8 +1554,7 @@ private:
 				quadIndices.push_back(uniqueVertices[vertexC]);
 			}
 		}
-
-		diredge::restoreDefaultPositions(mesh);
+		diredge::restoreDefaults(mesh);
 	}
 
 	void loadModel() {
@@ -1754,6 +1771,15 @@ private:
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 		}
+
+		bufferSize = sizeof(ShadowBufferObject);
+
+		shadowUniformBuffers.resize(swapChainImages.size());
+		shadowUniformBuffersMemory.resize(swapChainImages.size());
+
+		for (size_t i = 0; i < swapChainImages.size(); i++) {
+			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, shadowUniformBuffers[i], shadowUniformBuffersMemory[i]);
+		}
 	}
 
 	void createLightingBuffers() {
@@ -1768,13 +1794,15 @@ private:
 	}
 
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 3> poolSizes = {};
+		std::array<VkDescriptorPoolSize, 4> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 2;
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1801,10 +1829,16 @@ private:
 		}
 
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
+
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = uniformBuffers[i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkDescriptorBufferInfo shadowBufferInfo = {};
+			shadowBufferInfo.buffer = shadowUniformBuffers[i];
+			shadowBufferInfo.offset = 0;
+			shadowBufferInfo.range = sizeof(ShadowBufferObject);
 
 			VkDescriptorBufferInfo lightingBufferInfo = {};
 			lightingBufferInfo.buffer = lightingBuffers[i];
@@ -1820,7 +1854,7 @@ private:
 			imageInfo[1].imageView = textureImageFinView;
 			imageInfo[1].sampler = textureSampler;
 
-			std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+			std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
 
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1845,6 +1879,14 @@ private:
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[2].descriptorCount = 2;
 			descriptorWrites[2].pImageInfo = imageInfo;
+
+			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[3].dstSet = descriptorSets[i];
+			descriptorWrites[3].dstBinding = 3;
+			descriptorWrites[3].dstArrayElement = 0;
+			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[3].descriptorCount = 1;
+			descriptorWrites[3].pBufferInfo = &shadowBufferInfo;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -2017,7 +2059,7 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
+			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 			
@@ -2079,8 +2121,8 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
@@ -2093,6 +2135,16 @@ private:
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
 		memcpy(data, &ubo, sizeof(ubo));
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
+
+		ShadowBufferObject shadow = {};
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
+		ubo.proj[1][1] *= -1;
+
+		vkMapMemory(device, shadowUniformBuffersMemory[currentImage], 0, sizeof(shadow), 0, &data);
+		memcpy(data, &shadow, sizeof(shadow));
+		vkUnmapMemory(device, shadowUniformBuffersMemory[currentImage]);
 
 		LightingConstants lighting = {};
 		if (renderLighting) {
@@ -2133,6 +2185,7 @@ private:
 		createSilhouetteVertices();
 		updateSilhouetteVertexBuffers(imageIndex);
 		updateSilhouetteIndexBuffers(imageIndex);
+		vkResetCommandPool(device, commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 		createCommandBuffers();
 
 		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {

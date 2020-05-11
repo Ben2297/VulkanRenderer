@@ -21,8 +21,6 @@ diredgeMesh diredge::createMesh(std::vector<glm::vec3> vertices, std::vector<glm
 	mesh.faceVertices.resize(raw_vertices.size(), -1);
 	makeFaceIndices(raw_vertices, mesh);
 
-
-
 	mesh.faceNormals.resize(raw_vertices.size() / 3, glm::vec3(0.0, 0.0, 0.0));
     mesh.otherHalf.resize(mesh.faceVertices.size(), NO_SUCH_ELEMENT);
     mesh.firstDirectedEdge.resize(mesh.positions.size(), NO_SUCH_ELEMENT);
@@ -61,6 +59,7 @@ void diredge::makeFaceIndices(std::vector<glm::vec3> vertices, diredgeMesh &mesh
             mesh.positions.push_back(vertices[vertex]);
 			mesh.defaultPositions.push_back(vertices[vertex]);
 			mesh.normals.push_back(mesh.tempNormals[vertex]);
+			mesh.deafultNormals.push_back(mesh.tempNormals[vertex]);
             writeID++;
         }
     }
@@ -217,11 +216,12 @@ void diredge::makeFaceNormals(diredgeMesh &mesh)
 	}
 }
 
-void diredge::restoreDefaultPositions(diredgeMesh &mesh)
+void diredge::restoreDefaults(diredgeMesh &mesh)
 {
 	for (long i = 0; i < mesh.positions.size(); i++)
 	{
 		mesh.positions[i] = mesh.defaultPositions[i];
+		mesh.normals[i] = mesh.deafultNormals[i];
 	}
 }
 
