@@ -730,9 +730,9 @@ private:
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
 		renderPassInfo.pAttachments = attachments.data();;
-		renderPassInfo.subpassCount = 3;
+		renderPassInfo.subpassCount = 4;
 		renderPassInfo.pSubpasses = subpasses;
-		renderPassInfo.dependencyCount = 3;
+		renderPassInfo.dependencyCount = 4;
 		renderPassInfo.pDependencies = dependencies;
 
 		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
@@ -1333,7 +1333,7 @@ private:
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &shadowPipeline) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!"); //throws runtime error
 		}
 
@@ -1776,6 +1776,64 @@ private:
 		mesh = diredge::createMesh(positions, normals, indices);
 
 		createSilhouetteVertices();
+
+		//Adds plane
+		Vertex vertexA = {};
+		Vertex vertexB = {};
+		Vertex vertexC = {};
+		Vertex vertexD = {};
+
+		vertexA.pos = glm::vec3(60.0f, -20.0f, -50.0f);
+		vertexA.color = { 1.0f, 1.0f, 1.0f };
+		vertexA.texCoord = { 0.0 , 1.0 };
+		vertexA.normal = {0.0f, 1.0f, 0.0f};
+
+		vertexB.pos = glm::vec3(-60.0f, -20.0f, -50.0f);;
+		vertexB.color = { 1.0f, 1.0f, 1.0f };
+		vertexB.texCoord = { 1.0 , 1.0 };
+		vertexB.normal = { 0.0f, 1.0f, 0.0f };
+
+		vertexC.pos = glm::vec3(60.0f, -20.0f, 50.0f);;
+		vertexC.color = { 1.0f, 1.0f, 1.0f };
+		vertexC.texCoord = { 0.0 , 0.0 };
+		vertexC.normal = { 0.0f, 1.0f, 0.0f };
+
+		vertexD.pos = glm::vec3(-60.0f, -20.0f, 50.0f);
+		vertexD.color = { 1.0f, 1.0f, 1.0f };
+		vertexD.texCoord = { 1.0 , 0.0 };
+		vertexD.normal = { 0.0f, 1.0f, 0.0f };
+
+		if (uniqueVertices.count(vertexA) == 0) {
+			uniqueVertices[vertexA] = static_cast<uint32_t>(vertices.size());
+			vertices.push_back(vertexA);
+		}
+
+		indices.push_back(uniqueVertices[vertexA]);
+
+		if (uniqueVertices.count(vertexB) == 0) {
+			uniqueVertices[vertexB] = static_cast<uint32_t>(vertices.size());
+			vertices.push_back(vertexB);
+		}
+
+		indices.push_back(uniqueVertices[vertexB]);
+
+		if (uniqueVertices.count(vertexC) == 0) {
+			uniqueVertices[vertexC] = static_cast<uint32_t>(vertices.size());
+			vertices.push_back(vertexC);
+		}
+
+		indices.push_back(uniqueVertices[vertexC]);
+
+		indices.push_back(uniqueVertices[vertexB]);
+
+		if (uniqueVertices.count(vertexD) == 0) {
+			uniqueVertices[vertexD] = static_cast<uint32_t>(vertices.size());
+			vertices.push_back(vertexD);
+		}
+
+		indices.push_back(uniqueVertices[vertexD]);
+
+		indices.push_back(uniqueVertices[vertexC]);
 	}
 
 	void createVertexBuffers() {
@@ -2190,12 +2248,12 @@ private:
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipeline);
-
 			VkBuffer vertexBuff[] = { vertexBuffers[i] };
 			VkDeviceSize offsets[] = { 0 };
 
 			//Shadow pass
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipeline);
+
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
@@ -2354,10 +2412,10 @@ private:
 		}
 
 		updateUniformBuffer(imageIndex);
-		createSilhouetteVertices();
-		updateSilhouetteVertexBuffers(imageIndex);
-		updateSilhouetteIndexBuffers(imageIndex);
-		vkResetCommandPool(device, commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+		//createSilhouetteVertices();
+		//updateSilhouetteVertexBuffers(imageIndex);
+		//updateSilhouetteIndexBuffers(imageIndex);
+		//vkResetCommandPool(device, commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 		createCommandBuffers();
 
 		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
