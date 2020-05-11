@@ -20,6 +20,8 @@ layout(location = 0) out vec4 outColor;
 void main() {
 	vec3 textureColor = vec3(texture(texSampler[0], fragTexCoord));
 
+	textureColor = vec3(0.862f, 0.854f, 0.854f);
+
 	if (fragRenderTex == 0.0f) {
 		textureColor = vec3(1.0f, 1.0f, 1.0f);
 	}
@@ -42,9 +44,6 @@ void main() {
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec) * 0.2;
-
-	//vec4 furColor = {0.96f, 0.95f, 0.035f, 1.0f};
-	vec4 furColor = {0.0f, 0.0f, 0.0f, 1.0f};
 	
-	outColor = furColor;
+	outColor = vec4(ambient + diffuse + specular, 1.0);
 }
