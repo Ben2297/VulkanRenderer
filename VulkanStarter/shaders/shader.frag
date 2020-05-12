@@ -3,6 +3,8 @@
 
 layout(binding = 2) uniform sampler2D texSampler[2];
 
+layout(input_attachment_index = 2, set = 0, binding = 4) uniform subpassInput inputDepth;
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragLightVector;
@@ -18,6 +20,8 @@ layout(location = 10) in float fragRenderTex;
 layout(location = 0) out vec4 outColor;
 
 void main() {
+	float depth = subpassLoad(inputDepth).r;
+
 	vec3 textureColor = vec3(texture(texSampler[0], fragTexCoord));
 
 	textureColor = vec3(0.862f, 0.854f, 0.854f);

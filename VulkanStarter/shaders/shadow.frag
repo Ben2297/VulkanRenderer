@@ -6,7 +6,7 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	outColor = vec4(0.862f, 0.854f, 0.854f, 1.0f);
-
 	gl_FragDepth = gl_FragCoord.z;
+
+	//outColor = vec4(vec3(gl_FragCoord.z), 1.0);
 }
