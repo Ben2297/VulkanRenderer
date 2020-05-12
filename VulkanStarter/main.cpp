@@ -665,7 +665,7 @@ private:
 		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 		VkAttachmentReference colorAttachmentRef = {}; //struct for color attachment reference information
 		colorAttachmentRef.attachment = 0;
@@ -673,11 +673,7 @@ private:
 
 		VkAttachmentReference depthAttachmentRef = {};
 		depthAttachmentRef.attachment = 1;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference inputAttachmentReference = {};
-		inputAttachmentReference.attachment = 2;
-		inputAttachmentReference.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 		VkSubpassDescription subpasses[4] = {}; //struct for subpass information
 		subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -689,7 +685,8 @@ private:
 		subpasses[1].colorAttachmentCount = 1;
 		subpasses[1].pColorAttachments = &colorAttachmentRef;
 		subpasses[1].pDepthStencilAttachment = &depthAttachmentRef;
-		subpasses[1].pInputAttachments = &inputAttachmentReference;
+		subpasses[1].inputAttachmentCount = 1;
+		subpasses[1].pInputAttachments = &depthAttachmentRef;
 
 		subpasses[2].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpasses[2].colorAttachmentCount = 1;
@@ -2083,7 +2080,7 @@ private:
 			imageInfo[1].sampler = textureSampler;
 
 			VkDescriptorImageInfo depthInfo = {};
-			depthInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			depthInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			depthInfo.imageView = depthImageView;
 			depthInfo.sampler = VK_NULL_HANDLE;
 
@@ -2300,7 +2297,7 @@ private:
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
