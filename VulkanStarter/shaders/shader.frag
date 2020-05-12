@@ -16,11 +16,14 @@ layout(location = 7) in float fragSpecularCoefficient;
 layout(location = 8) in vec3 fragNormal;
 layout(location = 9) in vec3 fragPos;
 layout(location = 10) in float fragRenderTex;
+layout(location = 11) in vec3 fragShadowCoord;
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	float depth = subpassLoad(inputDepth).r;
+	float shadowDepth = subpassLoad(inputDepth).r;
+
+	float fragmentDepth = fragShadowCoord.z;
 
 	vec3 textureColor = vec3(texture(texSampler[0], fragTexCoord));
 
@@ -33,22 +36,32 @@ void main() {
 	vec3 off = {0.0f, 0.0f, 0.0f};
 	vec3 ambient = {0.0f, 0.0f, 0.0f};
 	if (fragAmbientLighting != off) {
-		ambient = (fragAmbientLighting * textureColor) * 0.6;
+		ambient = (fragAmbientLighting * fragColor) * 0.6;
 	} else {
 		ambient = textureColor;
 	}
+
+	vec3 lightingColor = ambient;
 	
 	vec3 lightDir = normalize(fragLightVector - fragPos);
 	vec3 normal = normalize(fragNormal);
 	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 diffuse = (diff * (fragDiffuseLighting * textureColor) * 0.5);
+	vec3 diffuse = (diff * (fragDiffuseLighting * fragColor) * 0.5);
 
 	vec3 viewDir = normalize(fragEyeVector - fragPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
-	vec3 specular = (fragSpecularLighting * spec) * 0.2;
+	vec3 specular = (fragSpecularLighting * spec * fragColor) * 0.2;
+
+	if (shadowDepth < fragmentDepth)
+	{
+		lightingColor += diffuse + specular;
+	}
+	else
+	{
+		lightingColor = vec3(0.0f, 0.0f, 0.0f);
+	}
 	
-	//outColor = vec4(ambient + diffuse + specular, 1.0);
-	outColor = vec4(vec3(depth), 1.0);
+	outColor = vec4((lightingColor), 1.0f);
 }

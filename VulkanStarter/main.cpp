@@ -1749,7 +1749,7 @@ private:
 					vertex.pos *= 200.0f;
 				}
 				
-				vertex.color = { 1.0f, 1.0f, 1.0f };
+				vertex.color = { 0.862f, 0.854f, 0.854f };
 
 				vertex.texCoord = {
 					attrib.texcoords[2 * index.texcoord_index + 0],
@@ -1793,22 +1793,22 @@ private:
 		Vertex vertexD = {};
 
 		vertexA.pos = glm::vec3(60.0f, -20.0f, -50.0f);
-		vertexA.color = { 1.0f, 1.0f, 1.0f };
+		vertexA.color = { 0.309f, 0.949f, 0.270f };
 		vertexA.texCoord = { 0.0 , 1.0 };
 		vertexA.normal = {0.0f, 1.0f, 0.0f};
 
 		vertexB.pos = glm::vec3(-60.0f, -20.0f, -50.0f);;
-		vertexB.color = { 1.0f, 1.0f, 1.0f };
+		vertexB.color = { 0.309f, 0.949f, 0.270f };
 		vertexB.texCoord = { 1.0 , 1.0 };
 		vertexB.normal = { 0.0f, 1.0f, 0.0f };
 
 		vertexC.pos = glm::vec3(60.0f, -20.0f, 50.0f);;
-		vertexC.color = { 1.0f, 1.0f, 1.0f };
+		vertexC.color = { 0.309f, 0.949f, 0.270f };
 		vertexC.texCoord = { 0.0 , 0.0 };
 		vertexC.normal = { 0.0f, 1.0f, 0.0f };
 
 		vertexD.pos = glm::vec3(-60.0f, -20.0f, 50.0f);
-		vertexD.color = { 1.0f, 1.0f, 1.0f };
+		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
 
@@ -2299,44 +2299,44 @@ private:
 
 			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+			//vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
-			//Fin pass
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
+			////Fin pass
+			//vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
 
-			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
+			//VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
+			//vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+			//vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
+			////vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
 
-			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
-			
-			//Shell pass
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
+			//vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+			//
+			////Shell pass
+			//vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
+			//vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+			//vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			float currentLayer = 0.0f;
-			float maxLayer = 1.0f;
-			float noOfLayers = 40.0f;
+			//float currentLayer = 0.0f;
+			//float maxLayer = 1.0f;
+			//float noOfLayers = 40.0f;
 
-			vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
+			//vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 
-			while (currentLayer <= maxLayer)
-			{
-				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-				currentLayer += (maxLayer / noOfLayers);
-				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
-			}
+			//while (currentLayer <= maxLayer)
+			//{
+			//	//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			//	currentLayer += (maxLayer / noOfLayers);
+			//	vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
+			//}
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -2375,9 +2375,9 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 30.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
@@ -2391,8 +2391,8 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		ShadowBufferObject shadow = {};
-		shadow.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.view = glm::lookAt(glm::vec3(20.0f, 40.0f, 50.0f), glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shadow.view = glm::lookAt(glm::vec3(20.0f, 50.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 
@@ -2409,7 +2409,7 @@ private:
 			lighting.lightSpecularExponent = 28.0f;
 		}
 		else {
-			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 70.0f);
+			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 50.0f);
 			lighting.lightAmbient = glm::vec3(0.0f, 0.0f, 0.0f);
 			lighting.lightDiffuse = glm::vec3(0.0f, 0.0f, 0.0f);
 			lighting.lightSpecular = glm::vec3(0.0f, 0.0f, 0.0f);
