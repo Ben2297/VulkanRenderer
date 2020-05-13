@@ -63,5 +63,5 @@ void main() {
 		lightingColor = vec3(0.0f, 0.0f, 0.0f);
 	}
 	
-	outColor = vec4((lightingColor), 1.0f);
+	outColor = vec4(vec3(lightingColor), 1.0f);
 }

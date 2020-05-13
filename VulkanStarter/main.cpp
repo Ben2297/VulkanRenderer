@@ -163,7 +163,7 @@ namespace std {
 	};
 }
 
-class HelloTriangleApplication {
+class VulkanApplication {
 public:
 	void run() {
 		initWindow(); //calls the function to initialise the window
@@ -195,7 +195,7 @@ private:
 	VkRenderPass renderPass; //creates the render pass
 	VkDescriptorSetLayout descriptorSetLayout; //creates the object to contain the descriptor bindings
 	VkPipelineLayout pipelineLayout; //creates the pipeline layout
-	VkPipeline graphicsPipeline; //creates the graphics pipeline
+	VkPipeline basePipeline; //creates the graphics pipeline
 	VkPipeline shellPipeline; //creates the shell pipeline
 	VkPipeline finPipeline; //creates the fin pipeline
 	VkPipeline shadowPipeline; //creates the shadow pipeline
@@ -205,6 +205,10 @@ private:
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
+
+	VkImage shadowImage;
+	VkDeviceMemory shadowImageMemory;
+	VkImageView shadowImageView;
 
 	VkImage textureImage;
 	VkImage textureImageFin;
@@ -268,12 +272,12 @@ private:
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-		auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+		auto app = reinterpret_cast<VulkanApplication*>(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-		auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+		auto app = reinterpret_cast<VulkanApplication*>(glfwGetWindowUserPointer(window));
 		if (key == GLFW_KEY_T && action == GLFW_PRESS) {
 			
 			if (app->renderTexture) {
@@ -305,7 +309,7 @@ private:
 		createImageViews(); //creates the image views
 		createRenderPass(); //creates the render pass
 		createDescriptorSetLayout(); //creates the layout for the descriptor set
-		createGraphicsPipeline(); //creates the graphics pipeline
+		createBasePipeline(); //creates the graphics pipeline
 		createShellPipeline(); //creates the shell pipeline
 		createFinPipeline(); //creates the fin pipeline
 		createShadowPipeline(); //creates the shadow pipeline
@@ -339,13 +343,17 @@ private:
 		vkDestroyImage(device, depthImage, nullptr);
 		vkFreeMemory(device, depthImageMemory, nullptr);
 
+		vkDestroyImageView(device, shadowImageView, nullptr);
+		vkDestroyImage(device, shadowImage, nullptr);
+		vkFreeMemory(device, shadowImageMemory, nullptr);
+
 		for (auto framebuffer : swapChainFramebuffers) {
 			vkDestroyFramebuffer(device, framebuffer, nullptr);
 		}
 
 		vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
-		vkDestroyPipeline(device, graphicsPipeline, nullptr);
+		vkDestroyPipeline(device, basePipeline, nullptr);
 		vkDestroyPipeline(device, shellPipeline, nullptr);
 		vkDestroyPipeline(device, finPipeline, nullptr);
 		vkDestroyPipeline(device, shadowPipeline, nullptr);
@@ -437,7 +445,7 @@ private:
 		createSwapChain();
 		createImageViews();
 		createRenderPass();
-		createGraphicsPipeline();
+		createBasePipeline();
 		createShellPipeline();
 		createFinPipeline();
 		createShadowPipeline();
@@ -457,7 +465,7 @@ private:
 
 		VkApplicationInfo appInfo = {}; //struct with information about application
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; //specifies structure type
-		appInfo.pApplicationName = "Hello Triangle"; //sets the name of the application
+		appInfo.pApplicationName = "Vulkan Renderer"; //sets the name of the application
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0); //specifies the version number of the application
 		appInfo.pEngineName = "No Engine"; //specifies the name of the engine used (if any) in this case no engine is being used
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0); //specifies the version number of the engine used to create the application
@@ -1070,7 +1078,7 @@ private:
 		vkDestroyShaderModule(device, vertShaderModule, nullptr); //destroys the vertex shader module
 	}
 
-	void createGraphicsPipeline() {
+	void createBasePipeline() {
 		auto vertShaderCode = readFile("shaders/vert.spv"); //stores the vertex shader path
 		auto fragShaderCode = readFile("shaders/frag.spv"); //stores the fragment shader path
 
@@ -1144,7 +1152,7 @@ private:
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_FALSE;
 		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
@@ -1202,7 +1210,7 @@ private:
 		pipelineInfo.subpass = 1;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &basePipeline) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!"); //throws runtime error
 		}
 
@@ -1354,9 +1362,10 @@ private:
 		swapChainFramebuffers.resize(swapChainImageViews.size()); //gets number of image views and sets number of frame buffers
 
 		for (size_t i = 0; i < swapChainImageViews.size(); i++) { //iterates through image views
-			std::array<VkImageView, 2> attachments = {
+			std::array<VkImageView, 3> attachments = {
 				swapChainImageViews[i],
-				depthImageView
+				depthImageView,
+				shadowImageView
 			};
 
 			VkFramebufferCreateInfo framebufferInfo = {};
@@ -1380,7 +1389,6 @@ private:
 		VkCommandPoolCreateInfo poolInfo = {}; //struct for pool information
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-		//poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create command pool!");
@@ -1392,6 +1400,11 @@ private:
 
 		createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
 		depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	}
+
+	void createShadowImage() {
+		createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowImage, shadowImageMemory);
+		shadowImageView = createImageView(shadowImage, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
@@ -1792,22 +1805,22 @@ private:
 		Vertex vertexC = {};
 		Vertex vertexD = {};
 
-		vertexA.pos = glm::vec3(60.0f, -20.0f, -50.0f);
+		vertexA.pos = glm::vec3(100.0f, -20.0f, -100.0f);
 		vertexA.color = { 0.309f, 0.949f, 0.270f };
 		vertexA.texCoord = { 0.0 , 1.0 };
 		vertexA.normal = {0.0f, 1.0f, 0.0f};
 
-		vertexB.pos = glm::vec3(-60.0f, -20.0f, -50.0f);;
+		vertexB.pos = glm::vec3(-100.0f, -20.0f, -100.0f);;
 		vertexB.color = { 0.309f, 0.949f, 0.270f };
 		vertexB.texCoord = { 1.0 , 1.0 };
 		vertexB.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexC.pos = glm::vec3(60.0f, -20.0f, 50.0f);;
+		vertexC.pos = glm::vec3(100.0f, -20.0f, 100.0f);;
 		vertexC.color = { 0.309f, 0.949f, 0.270f };
 		vertexC.texCoord = { 0.0 , 0.0 };
 		vertexC.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexD.pos = glm::vec3(-60.0f, -20.0f, 50.0f);
+		vertexD.pos = glm::vec3(-100.0f, -20.0f, 100.0f);
 		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
@@ -2070,7 +2083,7 @@ private:
 			lightingBufferInfo.offset = 0;
 			lightingBufferInfo.range = sizeof(LightingConstants);
 
-			VkDescriptorImageInfo imageInfo[2];
+			VkDescriptorImageInfo imageInfo[3];
 			imageInfo[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo[0].imageView = textureImageView;
 			imageInfo[0].sampler = textureSampler;
@@ -2079,10 +2092,9 @@ private:
 			imageInfo[1].imageView = textureImageFinView;
 			imageInfo[1].sampler = textureSampler;
 
-			VkDescriptorImageInfo depthInfo = {};
-			depthInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-			depthInfo.imageView = depthImageView;
-			depthInfo.sampler = VK_NULL_HANDLE;
+			imageInfo[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo[2].imageView = shadowImageView;
+			imageInfo[2].sampler = textureSampler;
 
 			std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
 
@@ -2122,9 +2134,9 @@ private:
 			descriptorWrites[4].dstSet = descriptorSets[i];
 			descriptorWrites[4].dstBinding = 4;
 			descriptorWrites[4].dstArrayElement = 0;
-			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[4].descriptorCount = 1;
-			descriptorWrites[4].pImageInfo = &depthInfo;
+			descriptorWrites[4].pImageInfo = imageInfo;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -2289,7 +2301,7 @@ private:
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
 			//Base pass
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, basePipeline);
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
@@ -2299,44 +2311,44 @@ private:
 
 			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-			//vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
-			////Fin pass
-			//vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
+			//Fin pass
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
 
-			//VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
+			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
 
-			//vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
 
-			//vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
-			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			////vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
+			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(quadIndices.size()), 1, 0, 0, 0);
 
-			//vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
-			//
-			////Shell pass
-			//vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
+			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+			
+			//Shell pass
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
 
-			//vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
-			//vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
-			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			//float currentLayer = 0.0f;
-			//float maxLayer = 1.0f;
-			//float noOfLayers = 40.0f;
+			float currentLayer = 0.0f;
+			float maxLayer = 1.0f;
+			float noOfLayers = 40.0f;
 
-			//vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
+			vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 
-			//while (currentLayer <= maxLayer)
-			//{
-			//	//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-			//	currentLayer += (maxLayer / noOfLayers);
-			//	vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
-			//}
+			while (currentLayer <= maxLayer)
+			{
+				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				currentLayer += (maxLayer / noOfLayers);
+				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
+			}
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -2377,7 +2389,7 @@ private:
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.view = glm::lookAt(glm::vec3(30.0f, 10.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
@@ -2391,8 +2403,8 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		ShadowBufferObject shadow = {};
-		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.view = glm::lookAt(glm::vec3(20.0f, 50.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shadow.model = glm::mat4(1.0f);
+		shadow.view = glm::lookAt(glm::vec3(20.0f, 40.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
 
@@ -2402,14 +2414,14 @@ private:
 
 		LightingConstants lighting = {};
 		if (renderLighting) {
-			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 50.0f);
+			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 40.0f);
 			lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
 			lighting.lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
 			lighting.lightSpecular = glm::vec3(0.288f, 0.288f, 0.288f);
 			lighting.lightSpecularExponent = 28.0f;
 		}
 		else {
-			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 50.0f);
+			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 40.0f);
 			lighting.lightAmbient = glm::vec3(0.0f, 0.0f, 0.0f);
 			lighting.lightDiffuse = glm::vec3(0.0f, 0.0f, 0.0f);
 			lighting.lightSpecular = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -2702,7 +2714,7 @@ private:
 };
 
 int main() {
-	HelloTriangleApplication app; //creates the application
+	VulkanApplication app; //creates the application
 
 	try {
 		app.run(); //runs the application

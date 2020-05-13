@@ -50,11 +50,11 @@ void main() {
 	vec4 VCS_position = ubo.view * WCS_position;
 
     fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
-	fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
+	fragNormal = vec3(ubo.model * vec4(inNormal, 1.0));
 	fragColor = inColor;
 	fragTexCoord = inTexCoord;
 
-	fragEyeVector = vec3(30.0f, 10.0f, 50.0f);
+	fragEyeVector = vec3(0.0f, 40.0f, 70.0f);
 
 	fragLightVector = lighting.lightPosition;
 	fragSpecularLighting = lighting.lightSpecular;
@@ -64,5 +64,5 @@ void main() {
 
 	fragRenderTex = ubo.renderTex;
 
-	gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
+	gl_Position = ubo.proj * VCS_position;
 }
