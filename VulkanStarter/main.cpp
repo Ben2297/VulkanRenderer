@@ -394,6 +394,7 @@ private:
 		cleanupSwapChain();
 
 		vkDestroySampler(device, textureSampler, nullptr);
+		vkDestroySampler(device, shadowPass.depthSampler, nullptr);
 		
 		vkDestroyImageView(device, textureImageView, nullptr);
 		vkDestroyImage(device, textureImage, nullptr);
@@ -1862,7 +1863,7 @@ private:
 
 		mesh = diredge::createMesh(positions, normals, indices);
 
-		createSilhouetteVertices();
+		//createSilhouetteVertices();
 
 		//Adds plane
 		Vertex vertexA = {};
@@ -1889,6 +1890,42 @@ private:
 		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
+
+		if (uniqueVertices.count(vertexA) == 0) {
+			uniqueVertices[vertexA] = static_cast<uint32_t>(quadVertices.size());
+			quadVertices.push_back(vertexA);
+		}
+
+		quadIndices.push_back(uniqueVertices[vertexA]);
+
+		if (uniqueVertices.count(vertexB) == 0) {
+			uniqueVertices[vertexB] = static_cast<uint32_t>(quadVertices.size());
+			quadVertices.push_back(vertexB);
+		}
+
+		quadIndices.push_back(uniqueVertices[vertexB]);
+
+		if (uniqueVertices.count(vertexC) == 0) {
+			uniqueVertices[vertexC] = static_cast<uint32_t>(quadVertices.size());
+			quadVertices.push_back(vertexC);
+		}
+
+		quadIndices.push_back(uniqueVertices[vertexC]);
+
+		quadIndices.push_back(uniqueVertices[vertexB]);
+
+		if (uniqueVertices.count(vertexD) == 0) {
+			uniqueVertices[vertexD] = static_cast<uint32_t>(quadVertices.size());
+			quadVertices.push_back(vertexD);
+		}
+
+		quadIndices.push_back(uniqueVertices[vertexD]);
+
+		quadIndices.push_back(uniqueVertices[vertexC]);
+
+		//Adds quad to general vertices
+
+		uniqueVertices = {};
 
 		if (uniqueVertices.count(vertexA) == 0) {
 			uniqueVertices[vertexA] = static_cast<uint32_t>(vertices.size());
@@ -2386,9 +2423,11 @@ private:
 			//Base subpass
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, basePipeline);
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
+			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
 
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
+
+			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
@@ -2398,8 +2437,6 @@ private:
 
 			//Fin subpass
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
-
-			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
 
@@ -2470,7 +2507,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
@@ -2485,10 +2522,10 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		ShadowBufferObject shadow = {};
-		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.view = glm::lookAt(glm::vec3(20.0f, 40.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shadow.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
-		ubo.proj[1][1] *= -1;
+		shadow.proj[1][1] *= -1;
 
 		vkMapMemory(device, shadowUniformBuffersMemory[currentImage], 0, sizeof(shadow), 0, &data);
 		memcpy(data, &shadow, sizeof(shadow));
@@ -2496,7 +2533,7 @@ private:
 
 		LightingConstants lighting = {};
 		if (renderLighting) {
-			lighting.lightPosition = glm::vec3(20.0f, 40.0f, 40.0f);
+			lighting.lightPosition = glm::vec3(20.0f, 80.0f, 40.0f);
 			lighting.lightAmbient = glm::vec3(0.8f, 0.8f, 0.8f);
 			lighting.lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
 			lighting.lightSpecular = glm::vec3(0.288f, 0.288f, 0.288f);
