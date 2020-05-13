@@ -1572,19 +1572,24 @@ private:
 		}
 
 		VkSamplerCreateInfo shadowSamplerInfo = {};
+		shadowSamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		shadowSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		shadowSamplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		shadowSamplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		shadowSamplerInfo.anisotropyEnable = false;
+		shadowSamplerInfo.maxAnisotropy = 1.0f;
+		shadowSamplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		shadowSamplerInfo.unnormalizedCoordinates = false;
+		shadowSamplerInfo.compareEnable = false;
+		shadowSamplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		shadowSamplerInfo.magFilter = VK_FILTER_LINEAR;
 		shadowSamplerInfo.minFilter = VK_FILTER_LINEAR;
-		shadowSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		shadowSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		shadowSamplerInfo.addressModeV = shadowSamplerInfo.addressModeU;
-		shadowSamplerInfo.addressModeW = shadowSamplerInfo.addressModeU;
+		shadowSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 		shadowSamplerInfo.mipLodBias = 0.0f;
-		shadowSamplerInfo.maxAnisotropy = 1.0f;
 		shadowSamplerInfo.minLod = 0.0f;
-		shadowSamplerInfo.maxLod = 1.0f;
-		shadowSamplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		shadowSamplerInfo.maxLod = 100.0f;
 
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &shadowPass.depthSampler) != VK_SUCCESS) {
+		if (vkCreateSampler(device, &shadowSamplerInfo, nullptr, &shadowPass.depthSampler) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create texture sampler!");
 		}
 	}
@@ -2425,9 +2430,9 @@ private:
 
 			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
 
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, quadVertexBuff, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
 
-			vkCmdBindIndexBuffer(commandBuffers[i], quadIndexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
@@ -2507,7 +2512,8 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::mat4(1.0f);
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
@@ -2522,7 +2528,8 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		ShadowBufferObject shadow = {};
-		shadow.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//shadow.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shadow.model = glm::mat4(1.0f);
 		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		shadow.proj[1][1] *= -1;
