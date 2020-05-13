@@ -3,8 +3,6 @@
 
 layout(binding = 2) uniform sampler2D texSampler[2];
 
-layout(input_attachment_index = 1, set = 0, binding = 4) uniform subpassInput inputDepth;
-
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragLightVector;
@@ -21,7 +19,7 @@ layout(location = 11) in vec3 fragShadowCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	float shadowDepth = subpassLoad(inputDepth).r;
+	//float shadowDepth = subpassLoad(inputDepth).r;
 
 	float fragmentDepth = fragShadowCoord.z;
 
@@ -54,14 +52,16 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	vec3 specular = (fragSpecularLighting * spec * fragColor) * 0.2;
 
-	if (shadowDepth < fragmentDepth)
-	{
-		lightingColor += diffuse + specular;
-	}
-	else
-	{
-		lightingColor = vec3(0.0f, 0.0f, 0.0f);
-	}
+	//if (shadowDepth < fragmentDepth)
+	//{
+	//	lightingColor += diffuse + specular;
+	//}
+	//else
+	//{
+	//	lightingColor = vec3(0.0f, 0.0f, 0.0f);
+	//}
+
+	lightingColor += diffuse + specular;
 	
 	outColor = vec4(vec3(lightingColor), 1.0f);
 }
