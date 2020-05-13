@@ -192,10 +192,7 @@ private:
 	std::vector<VkImageView> swapChainImageViews; //creates the vector of swap chain image views
 	std::vector<VkFramebuffer> swapChainFramebuffers; //creates the vector of swap chain image buffers
 
-
-
 	VkRenderPass renderPass; //creates the render pass
-	VkRenderPass shadowRenderPass; //creates the shadow map render pass
 	VkDescriptorSetLayout descriptorSetLayout; //creates the object to contain the descriptor bindings
 	VkPipelineLayout pipelineLayout; //creates the pipeline layout
 	VkPipeline basePipeline; //creates the graphics pipeline
@@ -203,15 +200,26 @@ private:
 	VkPipeline finPipeline; //creates the fin pipeline
 	VkPipeline shadowPipeline; //creates the shadow pipeline
 
+	struct FrameBufferAttachment {
+		VkImage image;
+		VkDeviceMemory memory;
+		VkImageView view;
+	};
+
+	struct shadowPass {
+		int32_t width, height;
+		VkFramebuffer frameBuffer;
+		FrameBufferAttachment depth;
+		VkRenderPass renderPass;
+		VkSampler depthSampler;
+		VkDescriptorImageInfo descriptor;
+	} shadowPass;
+
 	VkCommandPool commandPool; //creates the command pool
 
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
-
-	VkImage shadowImage;
-	VkDeviceMemory shadowImageMemory;
-	VkImageView shadowImageView;
 
 	VkImage textureImage;
 	VkImage textureImageFin;
@@ -309,7 +317,7 @@ private:
 		createSwapChain(); //creates the swap chain
 		createImageViews(); //creates the image views
 		createRenderPass(); //creates the render pass
-		createShadowRenderPass();
+		createShadowRenderPass(); //creates the shadow render pass
 		createDescriptorSetLayout(); //creates the layout for the descriptor set
 		createBasePipeline(); //creates the graphics pipeline
 		createShellPipeline(); //creates the shell pipeline
@@ -317,10 +325,11 @@ private:
 		createShadowPipeline(); //creates the shadow pipeline
 		createCommandPool(); //creates the command pool
 		createDepthResources(); //creates the depth resources
+		createShadowImage();
 		createFramebuffers(); //creates the frame buffers
 		createTextureImage(); //creates the texture image
 		createTextureImageView(); //creates the texture image view
-		createTextureSampler(); //creates the texture samplers
+		createSamplers(); //creates the texture samplers
 		loadModel(); //loads the obj file
 		createVertexBuffers(); //creates the vertex buffer
 		createIndexBuffers(); //creates the index buffer
@@ -345,9 +354,9 @@ private:
 		vkDestroyImage(device, depthImage, nullptr);
 		vkFreeMemory(device, depthImageMemory, nullptr);
 
-		vkDestroyImageView(device, shadowImageView, nullptr);
-		vkDestroyImage(device, shadowImage, nullptr);
-		vkFreeMemory(device, shadowImageMemory, nullptr);
+		vkDestroyImageView(device, shadowPass.depth.view, nullptr);
+		vkDestroyImage(device, shadowPass.depth.image, nullptr);
+		vkFreeMemory(device, shadowPass.depth.memory, nullptr);
 
 		for (auto framebuffer : swapChainFramebuffers) {
 			vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -361,7 +370,7 @@ private:
 		vkDestroyPipeline(device, shadowPipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
-		vkDestroyRenderPass(device, shadowRenderPass, nullptr);
+		vkDestroyRenderPass(device, shadowPass.renderPass, nullptr);
 
 		for (auto imageView : swapChainImageViews) {
 			vkDestroyImageView(device, imageView, nullptr);
@@ -454,6 +463,7 @@ private:
 		createFinPipeline();
 		createShadowPipeline();
 		createDepthResources();
+		createShadowImage();
 		createFramebuffers();
 		createUniformBuffers();
 		createLightingBuffers();
@@ -777,7 +787,7 @@ private:
 		renderPassInfo.dependencyCount = 0;
 		renderPassInfo.pDependencies = NULL;
 
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &shadowRenderPass) != VK_SUCCESS) {
+		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &shadowPass.renderPass) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create shadow render pass!"); //throws runtime error
 		}
 	}
@@ -1378,7 +1388,7 @@ private:
 		pipelineInfo.pDepthStencilState = &depthStencil;
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.layout = pipelineLayout;
-		pipelineInfo.renderPass = shadowRenderPass;
+		pipelineInfo.renderPass = shadowPass.renderPass;
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -1412,6 +1422,19 @@ private:
 				throw std::runtime_error("failed to create framebuffer!"); //throws runtime error
 			}
 		}
+
+		VkFramebufferCreateInfo framebufferInfo = {};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = shadowPass.renderPass;
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = &shadowPass.depth.view;
+		framebufferInfo.width = swapChainExtent.width;
+		framebufferInfo.height = swapChainExtent.height;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &shadowPass.frameBuffer) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create framebuffer!"); //throws runtime error
+		}
 	}
 
 	void createCommandPool() {
@@ -1434,8 +1457,10 @@ private:
 	}
 
 	void createShadowImage() {
-		createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowImage, shadowImageMemory);
-		shadowImageView = createImageView(shadowImage, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+		VkFormat depthFormat = findDepthFormat();
+
+		createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowPass.depth.image, shadowPass.depth.memory);
+		shadowPass.depth.view = createImageView(shadowPass.depth.image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
@@ -1525,7 +1550,7 @@ private:
 		textureImageFinView = createImageView(textureImageFin, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
-	void createTextureSampler() {
+	void createSamplers() {
 		VkSamplerCreateInfo samplerInfo = {};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1542,6 +1567,23 @@ private:
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 		if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create texture sampler!");
+		}
+
+		VkSamplerCreateInfo shadowSamplerInfo = {};
+		shadowSamplerInfo.magFilter = VK_FILTER_LINEAR;
+		shadowSamplerInfo.minFilter = VK_FILTER_LINEAR;
+		shadowSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		shadowSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		shadowSamplerInfo.addressModeV = shadowSamplerInfo.addressModeU;
+		shadowSamplerInfo.addressModeW = shadowSamplerInfo.addressModeU;
+		shadowSamplerInfo.mipLodBias = 0.0f;
+		shadowSamplerInfo.maxAnisotropy = 1.0f;
+		shadowSamplerInfo.minLod = 0.0f;
+		shadowSamplerInfo.maxLod = 1.0f;
+		shadowSamplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+		if (vkCreateSampler(device, &samplerInfo, nullptr, &shadowPass.depthSampler) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create texture sampler!");
 		}
 	}
@@ -1828,22 +1870,22 @@ private:
 		Vertex vertexC = {};
 		Vertex vertexD = {};
 
-		vertexA.pos = glm::vec3(100.0f, -20.0f, -100.0f);
+		vertexA.pos = glm::vec3(100.0f, 0.0f, -100.0f);
 		vertexA.color = { 0.309f, 0.949f, 0.270f };
 		vertexA.texCoord = { 0.0 , 1.0 };
 		vertexA.normal = {0.0f, 1.0f, 0.0f};
 
-		vertexB.pos = glm::vec3(-100.0f, -20.0f, -100.0f);;
+		vertexB.pos = glm::vec3(-100.0f, 0.0f, -100.0f);;
 		vertexB.color = { 0.309f, 0.949f, 0.270f };
 		vertexB.texCoord = { 1.0 , 1.0 };
 		vertexB.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexC.pos = glm::vec3(100.0f, -20.0f, 100.0f);;
+		vertexC.pos = glm::vec3(100.0f, 0.0f, 100.0f);;
 		vertexC.color = { 0.309f, 0.949f, 0.270f };
 		vertexC.texCoord = { 0.0 , 0.0 };
 		vertexC.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexD.pos = glm::vec3(-100.0f, -20.0f, 100.0f);
+		vertexD.pos = glm::vec3(-100.0f, 0.0f, 100.0f);
 		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
@@ -2106,7 +2148,7 @@ private:
 			lightingBufferInfo.offset = 0;
 			lightingBufferInfo.range = sizeof(LightingConstants);
 
-			VkDescriptorImageInfo imageInfo[3];
+			VkDescriptorImageInfo imageInfo[2];
 			imageInfo[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo[0].imageView = textureImageView;
 			imageInfo[0].sampler = textureSampler;
@@ -2115,9 +2157,10 @@ private:
 			imageInfo[1].imageView = textureImageFinView;
 			imageInfo[1].sampler = textureSampler;
 
-			imageInfo[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo[2].imageView = shadowImageView;
-			imageInfo[2].sampler = textureSampler;
+			VkDescriptorImageInfo shadowImageInfo = {};
+			shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			shadowImageInfo.imageView = shadowPass.depth.view;
+			shadowImageInfo.sampler = shadowPass.depthSampler;
 
 			std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
 
@@ -2159,7 +2202,7 @@ private:
 			descriptorWrites[4].dstArrayElement = 0;
 			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[4].descriptorCount = 1;
-			descriptorWrites[4].pImageInfo = imageInfo;
+			descriptorWrites[4].pImageInfo = &shadowImageInfo;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -2291,7 +2334,40 @@ private:
 				throw std::runtime_error("failed to begin recording command buffer!"); //throws runtime error
 			}
 
+			//SHADOW PASS
+
 			VkRenderPassBeginInfo renderPassInfo = {}; //struct for render pass information
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = shadowPass.renderPass;
+			renderPassInfo.framebuffer = shadowPass.frameBuffer;
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = swapChainExtent;
+
+			std::array<VkClearValue, 1> shadowClearValues = {};
+			shadowClearValues[0].depthStencil = { 1.0f, 0 };
+
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(shadowClearValues.size());
+			renderPassInfo.pClearValues = shadowClearValues.data();
+
+			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkBuffer vertexBuff[] = { vertexBuffers[i] };
+			VkDeviceSize offsets[] = { 0 };
+
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipeline);
+
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
+
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+
+			vkCmdEndRenderPass(commandBuffers[i]);
+
+			//MAIN PASS
+
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			renderPassInfo.renderPass = renderPass;
 			renderPassInfo.framebuffer = swapChainFramebuffers[i];
@@ -2307,10 +2383,7 @@ private:
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkBuffer vertexBuff[] = { vertexBuffers[i] };
-			VkDeviceSize offsets[] = { 0 };
-
-			//Base pass
+			//Base subpass
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, basePipeline);
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
@@ -2323,7 +2396,7 @@ private:
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
-			//Fin pass
+			//Fin subpass
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, finPipeline);
 
 			VkBuffer quadVertexBuff[] = { quadVertexBuffers[i] };
@@ -2338,7 +2411,7 @@ private:
 
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 			
-			//Shell pass
+			//Shell subpass
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shellPipeline);
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuff, offsets);
@@ -2460,7 +2533,6 @@ private:
 		//createSilhouetteVertices();
 		//updateSilhouetteVertexBuffers(imageIndex);
 		//updateSilhouetteIndexBuffers(imageIndex);
-		//vkResetCommandPool(device, commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 		createCommandBuffers();
 
 		if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
