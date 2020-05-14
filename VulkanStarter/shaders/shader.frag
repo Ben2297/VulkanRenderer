@@ -20,6 +20,30 @@ layout(location = 11) in vec4 fragShadowCoord;
 
 layout(location = 0) out vec4 outColor;
 
+float ShadowCalculation(vec4 fragShadowCoord)
+{
+    // perform perspective divide
+    vec3 projCoords = fragShadowCoord.xyz / fragShadowCoord.w;
+
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+
+    //Get depth from shadow map
+    float closestDepth = texture(shadowSampler, projCoords.xy).r;
+
+    //Get depth of fragment from light coordinates
+    float currentDepth = projCoords.z;
+
+	//Calculate depth bias
+	vec3 lightDir = normalize(fragLightVector - fragPos);
+	float bias = max(0.0005 * (1.0 - dot(normalize(fragNormal), lightDir)), 0.00005);
+
+    //Check if in shadow
+    float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+
+    return shadow;
+}  
+
 void main() {
 
 	//Set texture color
@@ -60,17 +84,9 @@ void main() {
 		specular = (fragSpecularLighting * spec * fragColor) * 0.2;
 	}
 	
-	float shadowDepth = texture(shadowSampler, fragShadowCoord.xy).r;
+	float shadow = ShadowCalculation(fragShadowCoord);
 
-	float fragmentDepth = fragShadowCoord.z;
-
-	if (shadowDepth < fragmentDepth)
-	{
-		//diffuse *= 0.5;
-		//specular *= 0.5;
-	}
-
-	vec3 lightingColor = (ambient + diffuse + specular);
+	vec3 lightingColor = (ambient + (1.0 - shadow) * (diffuse + specular));
 	
 	outColor = vec4(lightingColor, 1.0f);
 }
