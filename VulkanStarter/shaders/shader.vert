@@ -38,14 +38,14 @@ layout(location = 7) out float fragSpecularCoefficient;
 layout(location = 8) out vec3 fragNormal;
 layout(location = 9) out vec3 fragPos;
 layout(location = 10) out float fragRenderTex;
-layout(location = 11) out vec3 fragShadowCoord;
+layout(location = 11) out vec4 fragShadowCoord;
 
 void main() {
 	vec4 WCS_position = ubo.model * vec4(inPosition, 1.0);
 
 	vec4 LCS_position = shadow.view * WCS_position;
 
-	fragShadowCoord = vec3(shadow.proj * LCS_position);
+	fragShadowCoord = shadow.proj * LCS_position;
 
 	vec4 VCS_position = ubo.view * WCS_position;
 

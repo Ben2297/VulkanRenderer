@@ -207,12 +207,10 @@ private:
 	};
 
 	struct shadowPass {
-		int32_t width, height;
 		VkFramebuffer frameBuffer;
 		FrameBufferAttachment depth;
 		VkRenderPass renderPass;
 		VkSampler depthSampler;
-		VkDescriptorImageInfo descriptor;
 	} shadowPass;
 
 	VkCommandPool commandPool; //creates the command pool
@@ -253,6 +251,8 @@ private:
 
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
+
+	VkDescriptorSet shadowDescriptorSet;
 
 	std::vector<VkCommandBuffer> commandBuffers; //creates the vector of command buffers
 
@@ -1263,10 +1263,10 @@ private:
 
 	void createShadowPipeline() {
 		auto vertShaderCode = readFile("shaders/shadowvert.spv"); //stores the vertex shader path
-		auto fragShaderCode = readFile("shaders/shadowfrag.spv"); //stores the fragment shader path
+		//auto fragShaderCode = readFile("shaders/shadowfrag.spv"); //stores the fragment shader path
 
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode); //sets the vertex shader module by using the shader path
-		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode); //sets the fragment shader module using the shader path
+		//VkShaderModule fragShaderModule = createShaderModule(fragShaderCode); //sets the fragment shader module using the shader path
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {}; //struct for vertex shader stage information
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1274,13 +1274,13 @@ private:
 		vertShaderStageInfo.module = vertShaderModule;
 		vertShaderStageInfo.pName = "main";
 
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo = {}; //struct for fragment shader stage information
-		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = fragShaderModule;
-		fragShaderStageInfo.pName = "main";
+		//VkPipelineShaderStageCreateInfo fragShaderStageInfo = {}; //struct for fragment shader stage information
+		//fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		//fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		//fragShaderStageInfo.module = fragShaderModule;
+		//fragShaderStageInfo.pName = "main";
 
-		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo }; //array for the vertex/fragment shader stage information
+		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo }; //array for the vertex/fragment shader stage information
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {}; //struct for vertex input information
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1379,7 +1379,7 @@ private:
 
 		VkGraphicsPipelineCreateInfo pipelineInfo = {}; //struct for pipeline information
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = 2;
+		pipelineInfo.stageCount = 1;
 		pipelineInfo.pStages = shaderStages;
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
@@ -1397,7 +1397,7 @@ private:
 			throw std::runtime_error("failed to create graphics pipeline!"); //throws runtime error
 		}
 
-		vkDestroyShaderModule(device, fragShaderModule, nullptr); //destroys the fragment shader module
+		//vkDestroyShaderModule(device, fragShaderModule, nullptr); //destroys the fragment shader module
 		vkDestroyShaderModule(device, vertShaderModule, nullptr); //destroys the vertex shader module
 	}
 
@@ -1876,22 +1876,22 @@ private:
 		Vertex vertexC = {};
 		Vertex vertexD = {};
 
-		vertexA.pos = glm::vec3(100.0f, 0.0f, -100.0f);
+		vertexA.pos = glm::vec3(100.0f, -5.0f, -100.0f);
 		vertexA.color = { 0.309f, 0.949f, 0.270f };
 		vertexA.texCoord = { 0.0 , 1.0 };
 		vertexA.normal = {0.0f, 1.0f, 0.0f};
 
-		vertexB.pos = glm::vec3(-100.0f, 0.0f, -100.0f);;
+		vertexB.pos = glm::vec3(-100.0f, -5.0f, -100.0f);;
 		vertexB.color = { 0.309f, 0.949f, 0.270f };
 		vertexB.texCoord = { 1.0 , 1.0 };
 		vertexB.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexC.pos = glm::vec3(100.0f, 0.0f, 100.0f);;
+		vertexC.pos = glm::vec3(100.0f, -5.0f, 100.0f);;
 		vertexC.color = { 0.309f, 0.949f, 0.270f };
 		vertexC.texCoord = { 0.0 , 0.0 };
 		vertexC.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexD.pos = glm::vec3(-100.0f, 0.0f, 100.0f);
+		vertexD.pos = glm::vec3(-100.0f, -5.0f, 100.0f);
 		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
@@ -2512,8 +2512,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		//ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.model = glm::mat4(1.0f);
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
 		ubo.proj[1][1] *= -1;
@@ -2528,11 +2527,9 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		ShadowBufferObject shadow = {};
-		//shadow.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.model = glm::mat4(1.0f);
+		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
-		shadow.proj[1][1] *= -1;
 
 		vkMapMemory(device, shadowUniformBuffersMemory[currentImage], 0, sizeof(shadow), 0, &data);
 		memcpy(data, &shadow, sizeof(shadow));
