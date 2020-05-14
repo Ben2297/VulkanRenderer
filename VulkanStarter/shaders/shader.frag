@@ -26,7 +26,7 @@ float ShadowCalculation(vec4 fragShadowCoord)
     vec3 projCoords = fragShadowCoord.xyz / fragShadowCoord.w;
 
     // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
+    //projCoords = projCoords * 0.5 + 0.5;
 
     //Get depth from shadow map
     float closestDepth = texture(shadowSampler, projCoords.xy).r;
@@ -36,15 +36,43 @@ float ShadowCalculation(vec4 fragShadowCoord)
 
 	//Calculate depth bias
 	vec3 lightDir = normalize(fragLightVector - fragPos);
-	float bias = max(0.0005 * (1.0 - dot(normalize(fragNormal), lightDir)), 0.00005);
+	//float bias = max(0.0005 * (1.0 - dot(normalize(fragNormal), lightDir)), 0.00005);
+
+	float cosTheta = clamp(dot(normalize(fragNormal), lightDir), 0, 1.0);
+	float bias = 0.0005*tan(acos(cosTheta));
+	bias = clamp(bias, 0, 0.01);
 
     //Check if in shadow
-    float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+
+	float shadow = 0.0;
+	vec2 texelSize = 1.0 / textureSize(shadowSampler, 0);
+	for(int x = -1; x <= 1; ++x)
+	{
+		for(int y = -1; y <= 1; ++y)
+		{
+			float pcfDepth = texture(shadowSampler, projCoords.xy + vec2(x, y) * texelSize).r; 
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+		}    
+	}
+	shadow /= 9.0;
+
+	if(projCoords.z > 1.0)
+        shadow = 0.0;
+    
+    return shadow;
 
     return shadow;
 }  
 
 void main() {
+
+	float shadow = ShadowCalculation(fragShadowCoord);
+	float visibility = 1.0;
+	if (shadow == 1.0)
+	{
+		visibility = 0.5;
+	}
 
 	//Set texture color
 	vec3 textureColor = texture(texSampler[0], fragTexCoord).rgb;
@@ -71,7 +99,7 @@ void main() {
 	float diff = max(dot(normal, lightDir), 0.0);
 	if (fragDiffuseLighting != off)
 	{
-		diffuse = (diff * (fragDiffuseLighting * fragColor) * 0.5);
+		diffuse = (diff * (visibility * fragDiffuseLighting * fragColor) * 0.5);
 	}
 
 	//Set specular lighting
@@ -81,12 +109,11 @@ void main() {
 	float spec = pow(max(dot(normal, halfwayDir), 0.0), fragSpecularCoefficient);
 	if (fragSpecularLighting != off)
 	{
-		specular = (fragSpecularLighting * spec * fragColor) * 0.2;
+		specular = (visibility * fragSpecularLighting * spec * fragColor) * 0.2;
 	}
-	
-	float shadow = ShadowCalculation(fragShadowCoord);
 
-	vec3 lightingColor = (ambient + (1.0 - shadow) * (diffuse + specular));
-	
+	//vec3 lightingColor = (ambient + (1.0 - shadow) * (diffuse + specular));
+	vec3 lightingColor = (ambient + diffuse + specular);
+
 	outColor = vec4(lightingColor, 1.0f);
 }

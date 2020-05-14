@@ -33,7 +33,7 @@
 const int WIDTH = 1000; //constant value for width of window
 const int HEIGHT = 800; //constant value for height of window
 
-const std::string MODEL_PATH = "models/sphere.obj";
+const std::string MODEL_PATH = "models/bunny.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
 const std::string FIN_TEXTURE_PATH = "textures/fin.png";
 
@@ -1334,9 +1334,7 @@ private:
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizer.depthBiasEnable = VK_TRUE;
-		rasterizer.depthBiasConstantFactor = 1.25f;
-		rasterizer.depthBiasSlopeFactor = 1.75f;
+		rasterizer.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampling = {}; //struct for multisampling information
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -2523,8 +2521,7 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.model = glm::mat4(1.0f);
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 200.0f);
 		ubo.proj[1][1] *= -1;
@@ -2540,13 +2537,11 @@ private:
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
 
 		ShadowBufferObject shadow = {};
-		//shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.model = glm::mat4(1.0f);
+		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 200.0f);
-		//shadow.proj[1][1] *= -1;
 		shadow.mvp = shadow.proj * shadow.view * shadow.model;
-		shadow.biasmvp = shadow.mvp;
+		shadow.biasmvp = biasMatrix * shadow.mvp;
 
 		vkMapMemory(device, shadowUniformBuffersMemory[currentImage], 0, sizeof(shadow), 0, &data);
 		memcpy(data, &shadow, sizeof(shadow));
