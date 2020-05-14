@@ -6,6 +6,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
 	float renderTex;
+	mat4 mvp;
 } ubo;
 
 layout(binding = 1) uniform LightingConstants {
@@ -20,6 +21,8 @@ layout(binding = 3) uniform ShadowBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
+	mat4 mvp;
+	mat4 biasmvp;
 } shadow;
 
 layout(location = 0) in vec3 inPosition;
@@ -41,13 +44,8 @@ layout(location = 10) out float fragRenderTex;
 layout(location = 11) out vec4 fragShadowCoord;
 
 void main() {
-	vec4 WCS_position = ubo.model * vec4(inPosition, 1.0);
 
-	vec4 LCS_position = shadow.view * WCS_position;
-
-	fragShadowCoord = shadow.proj * LCS_position;
-
-	vec4 VCS_position = ubo.view * WCS_position;
+	fragShadowCoord = shadow.biasmvp * vec4(inPosition, 1.0);
 
 	fragNormal = transpose(inverse(mat3(ubo.model))) * inNormal;
 
@@ -55,7 +53,7 @@ void main() {
 
 	fragEyeVector = vec3(0.0f, 40.0f, 70.0f);
 
-	gl_Position = ubo.proj * VCS_position;
+	gl_Position = ubo.mvp * vec4(inPosition, 1.0);
 
     fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
 	

@@ -136,13 +136,22 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 	alignas(4) float renderTex;
-	alignas(16) glm::mat4 defaultModel;
+	alignas(16) glm::mat4 mvp;
 };
+
+glm::mat4 biasMatrix(
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 0.5, 0.0,
+	0.5, 0.5, 0.5, 1.0
+);
 
 struct ShadowBufferObject {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
+	alignas(16) glm::mat4 mvp;
+	alignas(16) glm::mat4 biasmvp;
 };
 
 struct LightingConstants {
@@ -2520,6 +2529,7 @@ private:
 		if (!renderTexture) {
 			ubo.renderTex = 0.0f;
 		}
+		ubo.mvp = ubo.proj * ubo.view * ubo.model;
 
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -2530,6 +2540,9 @@ private:
 		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.proj = glm::perspective(glm::radians(90.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 300.0f);
+		shadow.proj[1][1] *= -1;
+		shadow.mvp = shadow.proj * shadow.view * shadow.model;
+		shadow.biasmvp = biasMatrix * shadow.mvp;
 
 		vkMapMemory(device, shadowUniformBuffersMemory[currentImage], 0, sizeof(shadow), 0, &data);
 		memcpy(data, &shadow, sizeof(shadow));

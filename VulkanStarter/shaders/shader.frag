@@ -20,32 +20,6 @@ layout(location = 11) in vec4 fragShadowCoord;
 
 layout(location = 0) out vec4 outColor;
 
-float LinearizeDepth(float depth)
-{
-    float z = depth * 2.0 - 1.0; // Back to NDC 
-    return (2.0 * 0.1 * 300.0) / (300.0 + 0.1 - z * (300.0 - 0.1));
-}
-
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
-    // perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-
-    // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
-
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowSampler, projCoords.xy).r; 
-
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-
-    // check whether current frag pos is in shadow
-    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
-
-	return shadow;
-}
-
 void main() {
 
 	//Set texture color
@@ -86,11 +60,17 @@ void main() {
 		specular = (fragSpecularLighting * spec * fragColor) * 0.2;
 	}
 	
-	float shadow = ShadowCalculation(fragShadowCoord);
+	float shadowDepth = texture(shadowSampler, fragShadowCoord.xy).r;
 
-	vec3 lightingColor = (ambient + (1.0 - shadow) * (diffuse + specular));
-	//vec3 lightingColor = (ambient + diffuse + specular);
-	//vec3 lightingColor = ambient;
+	float fragmentDepth = fragShadowCoord.z;
+
+	if (shadowDepth < fragmentDepth)
+	{
+		//diffuse *= 0.5;
+		//specular *= 0.5;
+	}
+
+	vec3 lightingColor = (ambient + diffuse + specular);
 	
 	outColor = vec4(lightingColor, 1.0f);
 }

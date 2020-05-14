@@ -6,12 +6,15 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
 	float renderTex;
+	mat4 mvp;
 } ubo;
 
 layout(binding = 3) uniform ShadowBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
+	mat4 mvp;
+	mat4 biasmvp;
 } shadow;
 
 layout(location = 0) in vec3 inPosition;
@@ -20,9 +23,5 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 
 void main() {
-    vec4 WCS_position = ubo.model * vec4(inPosition, 1.0);
-
-	vec4 LCS_position = shadow.view * WCS_position;
-
-	gl_Position = shadow.proj * LCS_position;
+    gl_Position = shadow.mvp * vec4(inPosition, 1.0);
 }
