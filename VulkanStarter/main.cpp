@@ -29,11 +29,18 @@
 #include <unordered_map>
 
 #include "diredge.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_vulkan.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_internal.h"
+#include "imgui/imstb_rectpack.h"
+#include "imgui/imstb_textedit.h"
+#include "imgui/imstb_truetype.h"
 
 const int WIDTH = 1000; //constant value for width of window
 const int HEIGHT = 800; //constant value for height of window
 
-const std::string MODEL_PATH = "models/bunny.obj";
+const std::string MODEL_PATH = "models/landspeeder.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
 const std::string FIN_TEXTURE_PATH = "textures/fin.png";
 
@@ -346,13 +353,53 @@ private:
 		createLightingBuffers(); //creates the lighting buffers
 		createDescriptorPool(); //creates the descriptor pool
 		createDescriptorSets(); //creates the descriptor sets
-		createCommandBuffers(); //creates the command buffers
+		//createCommandBuffers(); //creates the command buffers
 		createSyncObjects(); //creates the sync objects
+		initImGui();
+	}
+
+	void initImGui()
+	{
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsClassic();
+
+		// Setup Platform/Renderer bindings
+		ImGui_ImplGlfw_InitForVulkan(window, true);
+		ImGui_ImplVulkan_InitInfo init_info = {};
+		init_info.Instance = instance;
+		init_info.PhysicalDevice = physicalDevice;
+		init_info.Device = device;
+		init_info.QueueFamily = ;
+		init_info.Queue = presentQueue;
+		init_info.PipelineCache = ;
+		init_info.DescriptorPool = descriptorPool;
+		init_info.Allocator = g_Allocator;
+		init_info.MinImageCount = g_MinImageCount;
+		init_info.ImageCount = wd->ImageCount;
+		init_info.CheckVkResultFn = check_vk_result;
+		ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
+
+		VkCommandBuffer command_buffer = beginSingleTimeCommands();
+		ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+		endSingleTimeCommands(command_buffer);
 	}
 
 	void mainLoop() {
 		while (!glfwWindowShouldClose(window)) { //loops until window is closed by the user
 			glfwPollEvents(); //checks for events
+			ImGui_ImplVulkan_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			ImGui::ShowDemoWindow();
+			ImGui::Render();
 			drawFrame(); //calls the function to draw the frame
 		}
 		vkDeviceWaitIdle(device);
@@ -1875,7 +1922,7 @@ private:
 			normals.push_back(vertices[i].normal);
 		}
 
-		mesh = diredge::createMesh(positions, normals, indices);
+		//mesh = diredge::createMesh(positions, normals, indices);
 
 		//createSilhouetteVertices();
 
@@ -1885,22 +1932,22 @@ private:
 		Vertex vertexC = {};
 		Vertex vertexD = {};
 
-		vertexA.pos = glm::vec3(100.0f, -30.0f, -100.0f);
+		vertexA.pos = glm::vec3(200.0f, -15.0f, -200.0f);
 		vertexA.color = { 0.309f, 0.949f, 0.270f };
 		vertexA.texCoord = { 0.0 , 1.0 };
 		vertexA.normal = {0.0f, 1.0f, 0.0f};
 
-		vertexB.pos = glm::vec3(-100.0f, -30.0f, -100.0f);;
+		vertexB.pos = glm::vec3(-200.0f, -15.0f, -200.0f);;
 		vertexB.color = { 0.309f, 0.949f, 0.270f };
 		vertexB.texCoord = { 1.0 , 1.0 };
 		vertexB.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexC.pos = glm::vec3(100.0f, -30.0f, 100.0f);;
+		vertexC.pos = glm::vec3(200.0f, -15.0f, 200.0f);;
 		vertexC.color = { 0.309f, 0.949f, 0.270f };
 		vertexC.texCoord = { 0.0 , 0.0 };
 		vertexC.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexD.pos = glm::vec3(-100.0f, -30.0f, 100.0f);
+		vertexD.pos = glm::vec3(-200.0f, -15.0f, 200.0f);
 		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
@@ -2483,6 +2530,9 @@ private:
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
+
+			// Record Imgui Draw Data and draw funcs into command buffer
+			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[i]);
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -2521,9 +2571,11 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 200.0f);
+		//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+		ubo.model = glm::rotate(ubo.model, time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 80.0f, 150.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 350.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
 		if (!renderTexture) {
@@ -2539,7 +2591,7 @@ private:
 		ShadowBufferObject shadow = {};
 		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 200.0f);
+		shadow.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 350.0f);
 		shadow.mvp = shadow.proj * shadow.view * shadow.model;
 		shadow.biasmvp = biasMatrix * shadow.mvp;
 
