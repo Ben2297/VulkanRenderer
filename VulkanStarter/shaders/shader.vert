@@ -23,6 +23,7 @@ layout(binding = 3) uniform ShadowBufferObject {
     mat4 proj;
 	mat4 mvp;
 	mat4 biasmvp;
+	float renderMap;
 } shadow;
 
 layout(location = 0) in vec3 inPosition;
@@ -42,6 +43,7 @@ layout(location = 8) out vec3 fragNormal;
 layout(location = 9) out vec3 fragPos;
 layout(location = 10) out float fragRenderTex;
 layout(location = 11) out vec4 fragShadowCoord;
+layout(location = 12) out float fragRenderShadowMap;
 
 void main() {
 
@@ -66,4 +68,5 @@ void main() {
 	fragSpecularCoefficient = lighting.lightSpecularExponent;
 
 	fragRenderTex = ubo.renderTex;
+	fragRenderShadowMap = shadow.renderMap;
 }

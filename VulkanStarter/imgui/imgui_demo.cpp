@@ -345,7 +345,7 @@ void ImGui::ShowDemoWindow(bool* p_open)
         ImGui::EndMenuBar();
     }
 
-    ImGui::Text("dear imgui says hello. (%s)", IMGUI_VERSION);
+    ImGui::Text("Rendering options:");
     ImGui::Spacing();
 
     if (ImGui::CollapsingHeader("Help"))

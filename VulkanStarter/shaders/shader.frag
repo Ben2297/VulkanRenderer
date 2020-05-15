@@ -17,15 +17,16 @@ layout(location = 8) in vec3 fragNormal;
 layout(location = 9) in vec3 fragPos;
 layout(location = 10) in float fragRenderTex;
 layout(location = 11) in vec4 fragShadowCoord;
+layout(location = 12) in float fragRenderShadowMap;
 
 layout(location = 0) out vec4 outColor;
 
 float ShadowCalculation(vec4 fragShadowCoord)
 {
-    // perform perspective divide
+    //Perform perspective divide
     vec3 projCoords = fragShadowCoord.xyz / fragShadowCoord.w;
 
-    // transform to [0,1] range
+    //Transform to [0,1] range
     //projCoords = projCoords * 0.5 + 0.5;
 
     //Get depth from shadow map
@@ -36,15 +37,12 @@ float ShadowCalculation(vec4 fragShadowCoord)
 
 	//Calculate depth bias
 	vec3 lightDir = normalize(fragLightVector - fragPos);
-	//float bias = max(0.0005 * (1.0 - dot(normalize(fragNormal), lightDir)), 0.00005);
 
 	float cosTheta = clamp(dot(normalize(fragNormal), lightDir), 0, 1.0);
 	float bias = 0.0005*tan(acos(cosTheta));
 	bias = clamp(bias, 0, 0.01);
 
-    //Check if in shadow
-    //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
-
+	//Check if in shadow and perform PCF
 	float shadow = 0.0;
 	vec2 texelSize = 1.0 / textureSize(shadowSampler, 0);
 	for(int x = -1; x <= 1; ++x)
@@ -60,8 +58,6 @@ float ShadowCalculation(vec4 fragShadowCoord)
 	if(projCoords.z > 1.0)
         shadow = 0.0;
     
-    return shadow;
-
     return shadow;
 }  
 
@@ -88,8 +84,7 @@ void main() {
 		ambient = (fragAmbientLighting * fragColor) * 0.6;
 	} else
 	{
-		//ambient = fragColor;
-		ambient = (vec3(0.8f, 0.8f, 0.8f) * fragColor) * 0.6;
+		ambient = fragColor;
 	}
 
 	//Set diffuse lighting
@@ -115,5 +110,10 @@ void main() {
 	//vec3 lightingColor = (ambient + (1.0 - shadow) * (diffuse + specular));
 	vec3 lightingColor = (ambient + diffuse + specular);
 
+	if (fragRenderShadowMap == 0.0f)
+	{
+		lightingColor = vec3(shadow);
+	}
+	
 	outColor = vec4(lightingColor, 1.0f);
 }

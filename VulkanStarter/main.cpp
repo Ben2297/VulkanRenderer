@@ -45,7 +45,7 @@
 #include "imgui/imgui_widgets.cpp"
 
 const int WIDTH = 1500; //constant value for width of window
-const int HEIGHT = 1500; //constant value for height of window
+const int HEIGHT = 1000; //constant value for height of window
 
 const std::string MODEL_PATH = "models/bunny.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
@@ -166,6 +166,7 @@ struct ShadowBufferObject {
 	alignas(16) glm::mat4 proj;
 	alignas(16) glm::mat4 mvp;
 	alignas(16) glm::mat4 biasmvp;
+	alignas(4) float renderMap;
 };
 
 struct LightingConstants {
@@ -273,7 +274,7 @@ private:
 	std::vector<VkDeviceMemory> lightingBuffersMemory;
 
 	VkDescriptorPool descriptorPool;
-	VkDescriptorPool g_descriptorPool;
+	VkDescriptorPool imgui_descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
 	VkDescriptorSet shadowDescriptorSet;
@@ -290,6 +291,7 @@ private:
 
 	bool renderTexture = true;
 	bool renderLighting = true;
+	bool renderShadowMap = false;
 
 	diredge::diredgeMesh mesh;
 
@@ -328,6 +330,16 @@ private:
 			}
 			else {
 				app->renderLighting = true;
+			}
+		}
+
+		if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+
+			if (app->renderShadowMap) {
+				app->renderShadowMap = false;
+			}
+			else {
+				app->renderShadowMap = true;
 			}
 		}
 	}
@@ -372,12 +384,9 @@ private:
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
-		//ImGui::StyleColorsClassic();
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -388,7 +397,7 @@ private:
 		init_info.QueueFamily = 1;
 		init_info.Queue = graphicsQueue;
 		init_info.PipelineCache = VK_NULL_HANDLE;
-		init_info.DescriptorPool = g_descriptorPool;
+		init_info.DescriptorPool = imgui_descriptorPool;
 		init_info.Allocator = nullptr;
 		init_info.MinImageCount = static_cast<uint32_t>(swapChainImages.size());
 		init_info.ImageCount = static_cast<uint32_t>(swapChainImages.size());
@@ -406,7 +415,31 @@ private:
 			ImGui_ImplVulkan_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
-			ImGui::ShowDemoWindow();
+			ImGui::Begin("Shadow renderer");
+			ImGui::SetWindowSize(ImVec2(150.0f, 150.0f));
+			if (ImGui::Button("Toggle lighting"))
+			{
+				if (!renderLighting)
+				{
+					renderLighting = true;
+				}
+				else
+				{
+					renderLighting = false;
+				}
+			}
+			if (ImGui::Button("Toggle shadows"))
+			{
+				if (!renderShadowMap)
+				{
+					renderShadowMap = true;
+				}
+				else
+				{
+					renderShadowMap = false;
+				}
+			}
+			ImGui::End();
 			ImGui::Render();
 			drawFrame(); //calls the function to draw the frame
 		}
@@ -452,6 +485,7 @@ private:
 		}
 
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+		vkDestroyDescriptorPool(device, imgui_descriptorPool, nullptr);
 	}
 
 	void cleanup() {
@@ -1327,22 +1361,14 @@ private:
 
 	void createShadowPipeline() {
 		auto vertShaderCode = readFile("shaders/shadowvert.spv"); //stores the vertex shader path
-		//auto fragShaderCode = readFile("shaders/shadowfrag.spv"); //stores the fragment shader path
 
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode); //sets the vertex shader module by using the shader path
-		//VkShaderModule fragShaderModule = createShaderModule(fragShaderCode); //sets the fragment shader module using the shader path
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {}; //struct for vertex shader stage information
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vertShaderStageInfo.module = vertShaderModule;
 		vertShaderStageInfo.pName = "main";
-
-		//VkPipelineShaderStageCreateInfo fragShaderStageInfo = {}; //struct for fragment shader stage information
-		//fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		//fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		//fragShaderStageInfo.module = fragShaderModule;
-		//fragShaderStageInfo.pName = "main";
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo }; //array for the vertex/fragment shader stage information
 
@@ -1404,27 +1430,6 @@ private:
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
 
-		//VkPipelineColorBlendAttachmentState colorBlendAttachment = {}; //struct for color blend attachment information
-		//colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		//colorBlendAttachment.blendEnable = VK_TRUE;
-		//colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		//colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		//colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		//colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		//colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		//colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-		//VkPipelineColorBlendStateCreateInfo colorBlending = {}; //struct for color blending information
-		//colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		//colorBlending.logicOpEnable = VK_FALSE;
-		//colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		//colorBlending.attachmentCount = 1;
-		//colorBlending.pAttachments = &colorBlendAttachment;
-		//colorBlending.blendConstants[0] = 0.0f;
-		//colorBlending.blendConstants[1] = 0.0f;
-		//colorBlending.blendConstants[2] = 0.0f;
-		//colorBlending.blendConstants[3] = 0.0f;
-
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {}; //struct for pipeline layout information
 		VkPushConstantRange pushConstantInfo = { 0 };
 		pushConstantInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1451,7 +1456,6 @@ private:
 		pipelineInfo.pRasterizationState = &rasterizer;
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pDepthStencilState = &depthStencil;
-		//pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.layout = pipelineLayout;
 		pipelineInfo.renderPass = shadowPass.renderPass;
 		pipelineInfo.subpass = 0;
@@ -1461,7 +1465,6 @@ private:
 			throw std::runtime_error("failed to create graphics pipeline!"); //throws runtime error
 		}
 
-		//vkDestroyShaderModule(device, fragShaderModule, nullptr); //destroys the fragment shader module
 		vkDestroyShaderModule(device, vertShaderModule, nullptr); //destroys the vertex shader module
 	}
 
@@ -2241,7 +2244,7 @@ private:
 		poolInfo.pPoolSizes = pool_sizes.data();
 		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
 
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &g_descriptorPool) != VK_SUCCESS) {
+		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &imgui_descriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor pool!");
 		}
 	}
@@ -2601,8 +2604,6 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo = {};
-		//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		//ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 250.0f);
@@ -2624,6 +2625,10 @@ private:
 		shadow.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 250.0f);
 		shadow.mvp = shadow.proj * shadow.view * shadow.model;
 		shadow.biasmvp = biasMatrix * shadow.mvp;
+		shadow.renderMap = 0.0f;
+		if (!renderShadowMap) {
+			shadow.renderMap = 1.0f;
+		}
 
 		vkMapMemory(device, shadowUniformBuffersMemory[currentImage], 0, sizeof(shadow), 0, &data);
 		memcpy(data, &shadow, sizeof(shadow));

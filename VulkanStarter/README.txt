@@ -1,3 +1,4 @@
 -Have .obj file in /models and .jpg file in /textures within project directory
 -Uses stb_image.h / tiny_obj_loader.h to load texture / object
 -Compile the shaders in /shaders before running program
+-Press L to toggle lighting and S to show only shadows
