@@ -30,17 +30,24 @@
 
 #include "diredge.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui.cpp"
 #include "imgui/imgui_impl_vulkan.h"
+#include "imgui/imgui_impl_vulkan.cpp"
 #include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_glfw.cpp"
 #include "imgui/imgui_internal.h"
 #include "imgui/imstb_rectpack.h"
 #include "imgui/imstb_textedit.h"
 #include "imgui/imstb_truetype.h"
+#include "imgui/imconfig.h"
+#include "imgui/imgui_demo.cpp"
+#include "imgui/imgui_draw.cpp"
+#include "imgui/imgui_widgets.cpp"
 
-const int WIDTH = 1000; //constant value for width of window
-const int HEIGHT = 800; //constant value for height of window
+const int WIDTH = 1500; //constant value for width of window
+const int HEIGHT = 1500; //constant value for height of window
 
-const std::string MODEL_PATH = "models/landspeeder.obj";
+const std::string MODEL_PATH = "models/bunny.obj";
 const std::string TEXTURE_PATH = "textures/furmap.gif";
 const std::string FIN_TEXTURE_PATH = "textures/fin.png";
 
@@ -266,6 +273,7 @@ private:
 	std::vector<VkDeviceMemory> lightingBuffersMemory;
 
 	VkDescriptorPool descriptorPool;
+	VkDescriptorPool g_descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
 	VkDescriptorSet shadowDescriptorSet;
@@ -377,15 +385,15 @@ private:
 		init_info.Instance = instance;
 		init_info.PhysicalDevice = physicalDevice;
 		init_info.Device = device;
-		init_info.QueueFamily = ;
-		init_info.Queue = presentQueue;
-		init_info.PipelineCache = ;
-		init_info.DescriptorPool = descriptorPool;
-		init_info.Allocator = g_Allocator;
-		init_info.MinImageCount = g_MinImageCount;
-		init_info.ImageCount = wd->ImageCount;
-		init_info.CheckVkResultFn = check_vk_result;
-		ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
+		init_info.QueueFamily = 1;
+		init_info.Queue = graphicsQueue;
+		init_info.PipelineCache = VK_NULL_HANDLE;
+		init_info.DescriptorPool = g_descriptorPool;
+		init_info.Allocator = nullptr;
+		init_info.MinImageCount = static_cast<uint32_t>(swapChainImages.size());
+		init_info.ImageCount = static_cast<uint32_t>(swapChainImages.size());
+		//init_info.CheckVkResultFn = check_vk_result;
+		ImGui_ImplVulkan_Init(&init_info, renderPass);
 
 		VkCommandBuffer command_buffer = beginSingleTimeCommands();
 		ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
@@ -1932,22 +1940,22 @@ private:
 		Vertex vertexC = {};
 		Vertex vertexD = {};
 
-		vertexA.pos = glm::vec3(200.0f, -15.0f, -200.0f);
+		vertexA.pos = glm::vec3(100.0f, -15.0f, -100.0f);
 		vertexA.color = { 0.309f, 0.949f, 0.270f };
 		vertexA.texCoord = { 0.0 , 1.0 };
 		vertexA.normal = {0.0f, 1.0f, 0.0f};
 
-		vertexB.pos = glm::vec3(-200.0f, -15.0f, -200.0f);;
+		vertexB.pos = glm::vec3(-100.0f, -15.0f, -100.0f);;
 		vertexB.color = { 0.309f, 0.949f, 0.270f };
 		vertexB.texCoord = { 1.0 , 1.0 };
 		vertexB.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexC.pos = glm::vec3(200.0f, -15.0f, 200.0f);;
+		vertexC.pos = glm::vec3(100.0f, -15.0f, 100.0f);;
 		vertexC.color = { 0.309f, 0.949f, 0.270f };
 		vertexC.texCoord = { 0.0 , 0.0 };
 		vertexC.normal = { 0.0f, 1.0f, 0.0f };
 
-		vertexD.pos = glm::vec3(-200.0f, -15.0f, 200.0f);
+		vertexD.pos = glm::vec3(-100.0f, -15.0f, 100.0f);
 		vertexD.color = { 0.309f, 0.949f, 0.270f };
 		vertexD.texCoord = { 1.0 , 0.0 };
 		vertexD.normal = { 0.0f, 1.0f, 0.0f };
@@ -2212,6 +2220,28 @@ private:
 		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
 
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create descriptor pool!");
+		}
+
+		std::array<VkDescriptorPoolSize, 11> pool_sizes = {};
+		pool_sizes[0] = { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 };
+		pool_sizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 };
+		pool_sizes[2] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 };
+		pool_sizes[3] = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 };
+		pool_sizes[4] = { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 };
+		pool_sizes[5] = { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 };
+		pool_sizes[6] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 };
+		pool_sizes[7] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 };
+		pool_sizes[8] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 };
+		pool_sizes[9] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 };
+		pool_sizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 };
+
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+		poolInfo.pPoolSizes = pool_sizes.data();
+		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+
+		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &g_descriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor pool!");
 		}
 	}
@@ -2494,6 +2524,9 @@ private:
 
 			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
+			// Record Imgui Draw Data and draw funcs into command buffer
+			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[i]);
+
 			vkCmdNextSubpass(commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
 			//Fin subpass
@@ -2530,9 +2563,6 @@ private:
 				currentLayer += (maxLayer / noOfLayers);
 				vkCmdPushConstants(commandBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(currentLayer), &currentLayer);
 			}
-
-			// Record Imgui Draw Data and draw funcs into command buffer
-			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[i]);
 			
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -2572,10 +2602,10 @@ private:
 
 		UniformBufferObject ubo = {};
 		//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-		ubo.model = glm::rotate(ubo.model, time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 80.0f, 150.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 350.0f);
+		//ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 40.0f, 70.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 250.0f);
 		ubo.proj[1][1] *= -1;
 		ubo.renderTex = 1.0f;
 		if (!renderTexture) {
@@ -2591,7 +2621,7 @@ private:
 		ShadowBufferObject shadow = {};
 		shadow.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		shadow.view = glm::lookAt(glm::vec3(20.0f, 80.0f, 40.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		shadow.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 350.0f);
+		shadow.proj = glm::perspective(glm::radians(70.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 250.0f);
 		shadow.mvp = shadow.proj * shadow.view * shadow.model;
 		shadow.biasmvp = biasMatrix * shadow.mvp;
 

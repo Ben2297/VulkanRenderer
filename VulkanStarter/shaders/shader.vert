@@ -51,7 +51,7 @@ void main() {
 
 	fragLightVector = vec3(ubo.view * vec4(lighting.lightPosition, 1.0));
 
-	fragEyeVector = vec3(0.0f, 80.0f, 150.0f);
+	fragEyeVector = vec3(0.0f, 40.0f, 70.0f);
 
 	gl_Position = ubo.mvp * vec4(inPosition, 1.0);
 
