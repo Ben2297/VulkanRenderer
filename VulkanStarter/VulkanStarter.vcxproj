@@ -107,13 +107,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Libraries\tinyobjloader-master;C:\Libraries\stb-master;C:\glm;C:\VulkanSDK\1.2.131.1\Include;C:\glfw-3.3.2.bin.WIN64\include;C:\Users\bensw\OneDrive\Documents\Uni Work\Leeds\COMP5822M\VulkanStarter\VulkanStarter\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\VulkanSDK\1.2.148.1\Include;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\tinyobjloader-master;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\stb-master;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\glfw-3.3.2.bin.WIN64\include;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\glm;C:\Users\bensw\OneDrive\Documents\Projects\VulkanStarter\VulkanStarter\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.131.1\Lib;C:\glfw-3.3.2.bin.WIN64\lib-vc2017;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.148.1\Lib;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\glfw-3.3.2.bin.WIN64\lib-vc2017;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -148,7 +148,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Libraries\tinyobjloader-master;C:\Libraries\stb-master;C:\glm;C:\VulkanSDK\1.2.131.1\Include;C:\glfw-3.3.2.bin.WIN64\include;C:\Users\bensw\OneDrive\Documents\Uni Work\Leeds\COMP5822M\VulkanStarter\VulkanStarter\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\VulkanSDK\1.2.148.1\Include;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\tinyobjloader-master;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\stb-master;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\glfw-3.3.2.bin.WIN64\include;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\glm;C:\Users\bensw\OneDrive\Documents\Projects\VulkanStarter\VulkanStarter\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -156,7 +156,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.131.1\Lib;C:\glfw-3.3.2.bin.WIN64\lib-vc2017;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.148.1\Lib;C:\Users\bensw\OneDrive\Documents\Visual Studio 2017\Libraries\glfw-3.3.2.bin.WIN64\lib-vc2017;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
